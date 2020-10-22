@@ -90,7 +90,7 @@ typedef struct {
 /** An IF statement */
 typedef struct {
     node_t base;
-    /** The condition to check, a binary_op_t with operator '<', '=', or '>' */
+    /** The condition to check, a binary_node_t with operator '<', '=', or '>' */
     node_t *condition;
     /** The statement to run if the condition evaluates to true */
     node_t *if_branch;
