@@ -30,7 +30,7 @@ opt2: $(OPT_TESTS_2:=-bench)
 out/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
-out/%.o: runtime/%.c
+out/timing.o: runtime/timing.c
 	$(ASM) $(CFLAGS) -O3 -c $^ -o $@
 
 bin/compiler: out/ast.o out/compile.o out/compiler.o out/parser.o
@@ -39,10 +39,10 @@ bin/compiler: out/ast.o out/compile.o out/compiler.o out/parser.o
 out/%.s: progs/%.bas bin/compiler
 	bin/compiler $< > $@
 
-bin/%: out/%.s out/print_int.o runtime/call_check.s
+bin/%: out/%.s runtime/print_int.s runtime/call_check.s
 	$(ASM) -g -nostartfiles $^ -o $@
 
-bin/time-%: out/%.s out/print_int_mock.o out/timing.o
+bin/time-%: out/%.s runtime/print_int_mock.s out/timing.o
 	$(ASM) -lm $^ -o $@
 
 progs/%-expected.txt: progs/%.bas
