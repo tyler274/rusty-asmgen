@@ -201,10 +201,10 @@ node_t *expression(parser_state_t *state) {
     return result;
 }
 
-node_t *comparison(parser_state_t *state) {
+binary_node_t *comparison(parser_state_t *state) {
     node_t *left = expression(state);
     char op = try_advance(state, is_comparison_op);
-    return init_binary_node(op, left, expression(state));
+    return (binary_node_t *) init_binary_node(op, left, expression(state));
 }
 
 node_t *sequence(parser_state_t *);
@@ -258,7 +258,7 @@ node_t *statement(parser_state_t *state, bool *end) {
     }
     if (strcmp(next, "IF") == 0) {
         free(next);
-        node_t *condition = comparison(state);
+        binary_node_t *condition = comparison(state);
         node_t *if_branch = sequence(state);
         next = advance_until_separator(state);
         node_t *else_branch;
@@ -272,7 +272,7 @@ node_t *statement(parser_state_t *state, bool *end) {
         }
         if (next == NULL || strcmp(next, "END") != 0) {
             free(next);
-            free_ast(condition);
+            free_ast((node_t *) condition);
             free_ast(if_branch);
             free_ast(else_branch);
             return NULL;
@@ -282,7 +282,7 @@ node_t *statement(parser_state_t *state, bool *end) {
         next = advance_until_separator(state);
         if (next == NULL || strcmp(next, "IF") != 0) {
             free(next);
-            free_ast(condition);
+            free_ast((node_t *) condition);
             free_ast(if_branch);
             free_ast(else_branch);
             return NULL;
@@ -293,12 +293,12 @@ node_t *statement(parser_state_t *state, bool *end) {
     }
     if (strcmp(next, "WHILE") == 0) {
         free(next);
-        node_t *condition = comparison(state);
+        binary_node_t *condition = comparison(state);
         node_t *body = sequence(state);
         next = advance_until_separator(state);
         if (next == NULL || strcmp(next, "END") != 0) {
             free(next);
-            free_ast(condition);
+            free_ast((node_t *) condition);
             free_ast(body);
             return NULL;
         }
@@ -307,7 +307,7 @@ node_t *statement(parser_state_t *state, bool *end) {
         next = advance_until_separator(state);
         if (next == NULL || strcmp(next, "WHILE") != 0) {
             free(next);
-            free_ast(condition);
+            free_ast((node_t *) condition);
             free_ast(body);
             return NULL;
         }
@@ -361,16 +361,12 @@ node_t *sequence(parser_state_t *state) {
 }
 
 node_t *parse(FILE *stream) {
-    parser_state_t *state = malloc(sizeof(parser_state_t));
-    assert(state != NULL);
-    state->stream = stream;
-    node_t *ast = sequence(state);
-    if (!at_end(state)) {
-        free(state);
+    parser_state_t state = {.stream = stream};
+    node_t *ast = sequence(&state);
+    if (!at_end(&state)) {
         free_ast(ast);
         return NULL;
     }
 
-    free(state);
     return ast;
 }

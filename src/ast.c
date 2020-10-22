@@ -81,9 +81,9 @@ node_t *init_let_node(var_name_t var, node_t *value) {
     return (node_t *) node;
 }
 
-node_t *init_if_node(node_t *condition, node_t *if_branch, node_t *else_branch) {
+node_t *init_if_node(binary_node_t *condition, node_t *if_branch, node_t *else_branch) {
     if (condition == NULL || if_branch == NULL) {
-        free_ast(condition);
+        free_ast((node_t *) condition);
         free_ast(if_branch);
         free_ast(else_branch);
         return NULL;
@@ -98,9 +98,9 @@ node_t *init_if_node(node_t *condition, node_t *if_branch, node_t *else_branch) 
     return (node_t *) node;
 }
 
-node_t *init_while_node(node_t *condition, node_t *body) {
+node_t *init_while_node(binary_node_t *condition, node_t *body) {
     if (condition == NULL || body == NULL) {
-        free_ast(condition);
+        free_ast((node_t *) condition);
         free_ast(body);
         return NULL;
     }
@@ -138,13 +138,13 @@ void free_ast(node_t *node) {
     }
     else if (node->type == IF) {
         if_node_t *conditional = (if_node_t *) node;
-        free_ast(conditional->condition);
+        free_ast((node_t *) conditional->condition);
         free_ast(conditional->if_branch);
         free_ast(conditional->else_branch);
     }
     else if (node->type == WHILE) {
         while_node_t *loop = (while_node_t *) node;
-        free_ast(loop->condition);
+        free_ast((node_t *) loop->condition);
         free_ast(loop->body);
     }
     free(node);
@@ -195,7 +195,7 @@ void print_ast_indented(node_t *node, size_t indent) {
         if_node_t *conditional = (if_node_t *) node;
         print_indent(indent);
         fprintf(stderr, "IF(");
-        print_ast_indented(conditional->condition, indent);
+        print_ast_indented((node_t *) conditional->condition, indent);
         fprintf(stderr, ",\n");
         print_ast_indented(conditional->if_branch, indent + 1);
         if (conditional->else_branch != NULL) {
@@ -210,7 +210,7 @@ void print_ast_indented(node_t *node, size_t indent) {
         while_node_t *loop = (while_node_t *) node;
         print_indent(indent);
         fprintf(stderr, "WHILE(");
-        print_ast_indented(loop->condition, indent);
+        print_ast_indented((node_t *) loop->condition, indent);
         fprintf(stderr, ",\n");
         print_ast_indented(loop->body, indent + 1);
         print_indent(indent);

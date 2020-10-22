@@ -90,8 +90,8 @@ typedef struct {
 /** An IF statement */
 typedef struct {
     node_t base;
-    /** The condition to check, a binary_node_t with operator '<', '=', or '>' */
-    node_t *condition;
+    /** The condition to check, which has operator '<', '=', or '>' */
+    binary_node_t *condition;
     /** The statement to run if the condition evaluates to true */
     node_t *if_branch;
     /**
@@ -104,12 +104,12 @@ typedef struct {
 /** A WHILE statement */
 typedef struct {
     node_t base;
+    /** The condition to check, which has operator '<', '=', or '>' */
+    binary_node_t *condition;
     /**
-     * The loop condition. The loop's `body` continues to run
-     * while this condition evaluates to true.
+     * The loop body. This statement is run repeatedly
+     * while `condition` evaluates to true.
      */
-    node_t *condition;
-    /** The loop body. This is a statement that is run repeatedly. */
     node_t *body;
 } while_node_t;
 
@@ -132,10 +132,10 @@ node_t *init_print_node(node_t *expr);
 node_t *init_let_node(var_name_t var, node_t *value);
 
 /** Constructs a cond_node_t */
-node_t *init_if_node(node_t *condition, node_t *if_branch, node_t *else_branch);
+node_t *init_if_node(binary_node_t *condition, node_t *if_branch, node_t *else_branch);
 
 /** Constructs a while_node_t */
-node_t *init_while_node(node_t *condition, node_t *body);
+node_t *init_while_node(binary_node_t *condition, node_t *body);
 
 /** Frees an AST node and all its descendants */
 void free_ast(node_t *node);
