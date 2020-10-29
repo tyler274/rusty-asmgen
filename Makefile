@@ -36,8 +36,8 @@ out/timing.o: runtime/timing.c
 bin/compiler: out/ast.o out/compile.o out/compiler.o out/parser.o
 	$(CC) $(CFLAGS) $^ -o $@
 
-out/%.s: progs/%.bas bin/compiler
-	bin/compiler $< > $@
+out/%.s: bin/compiler progs/%.bas
+	$^ > $@
 
 bin/%: out/%.s runtime/print_int.s runtime/call_check.s
 	$(ASM) -g -nostartfiles $^ -o $@
