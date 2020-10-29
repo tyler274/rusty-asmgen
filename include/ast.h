@@ -7,8 +7,8 @@
  * The AST is a recursive data structure consisting of several types of "nodes".
  */
 
+#include <inttypes.h>
 #include <stddef.h>
-#include <stdint.h>
 
 /** The types of AST nodes */
 typedef enum { NUM, BINARY_OP, VAR, SEQUENCE, PRINT, LET, IF, WHILE } node_type_t;
