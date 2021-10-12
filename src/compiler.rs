@@ -1,30 +1,38 @@
-#![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case,
-         non_upper_case_globals, unused_assignments, unused_mut)]
+#![allow(
+    dead_code,
+    mutable_transmutes,
+    non_camel_case_types,
+    non_snake_case,
+    non_upper_case_globals,
+    unused_assignments,
+    unused_mut
+)]
 #![register_tool(c2rust)]
-#![feature(const_raw_ptr_to_usize_cast, extern_types, main, register_tool)]
+#![feature(extern_types, register_tool)]
+use ::c2rust_out::*;
 extern "C" {
     pub type _IO_wide_data;
     pub type _IO_codecvt;
     pub type _IO_marker;
-    #[no_mangle]
+
     static mut stderr: *mut FILE;
-    #[no_mangle]
+
     fn fclose(__stream: *mut FILE) -> libc::c_int;
-    #[no_mangle]
+
     fn fopen(_: *const libc::c_char, _: *const libc::c_char) -> *mut FILE;
-    #[no_mangle]
+
     fn fprintf(_: *mut FILE, _: *const libc::c_char, _: ...) -> libc::c_int;
-    #[no_mangle]
+
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
-    #[no_mangle]
+
     fn exit(_: libc::c_int) -> !;
-    #[no_mangle]
+
     fn compile_ast(node: *mut node_t) -> bool;
-    #[no_mangle]
+
     fn free_ast(node: *mut node_t);
-    #[no_mangle]
+
     fn print_ast(node: *mut node_t);
-    #[no_mangle]
+
     fn parse(stream: *mut FILE) -> *mut node_t;
 }
 pub type size_t = libc::c_ulong;
@@ -81,9 +89,11 @@ pub struct node_t {
 }
 #[no_mangle]
 pub unsafe extern "C" fn usage(mut program: *mut libc::c_char) {
-    fprintf(stderr,
-            b"USAGE: %s <program file>\n\x00" as *const u8 as
-                *const libc::c_char, program);
+    fprintf(
+        stderr,
+        b"USAGE: %s <program file>\n\x00" as *const u8 as *const libc::c_char,
+        program,
+    );
     exit(1 as libc::c_int);
 }
 /* *
@@ -105,32 +115,37 @@ pub unsafe extern "C" fn header() {
 pub unsafe extern "C" fn footer() {
     printf(b"    ret\n\x00" as *const u8 as *const libc::c_char);
 }
-unsafe fn main_0(mut argc: libc::c_int, mut argv: *mut *mut libc::c_char)
- -> libc::c_int {
+unsafe fn main_0(mut argc: libc::c_int, mut argv: *mut *mut libc::c_char) -> libc::c_int {
     if argc != 2 as libc::c_int {
         usage(*argv.offset(0 as libc::c_int as isize));
     }
-    let mut program: *mut FILE =
-        fopen(*argv.offset(1 as libc::c_int as isize),
-              b"r\x00" as *const u8 as *const libc::c_char);
-    if program.is_null() { usage(*argv.offset(0 as libc::c_int as isize)); }
+    let mut program: *mut FILE = fopen(
+        *argv.offset(1 as libc::c_int as isize),
+        b"r\x00" as *const u8 as *const libc::c_char,
+    );
+    if program.is_null() {
+        usage(*argv.offset(0 as libc::c_int as isize));
+    }
     header();
     let mut ast: *mut node_t = parse(program);
     fclose(program);
     if ast.is_null() {
-        fprintf(stderr,
-                b"Parse error\n\x00" as *const u8 as *const libc::c_char);
-        return 2 as libc::c_int
+        fprintf(
+            stderr,
+            b"Parse error\n\x00" as *const u8 as *const libc::c_char,
+        );
+        return 2 as libc::c_int;
     }
     // Display the AST for debugging purposes
     print_ast(ast);
     // Compile the AST into assembly instructions
     if !compile_ast(ast) {
         free_ast(ast);
-        fprintf(stderr,
-                b"Compilation error\n\x00" as *const u8 as
-                    *const libc::c_char);
-        return 3 as libc::c_int
+        fprintf(
+            stderr,
+            b"Compilation error\n\x00" as *const u8 as *const libc::c_char,
+        );
+        return 3 as libc::c_int;
     }
     free_ast(ast);
     footer();
@@ -140,12 +155,17 @@ unsafe fn main_0(mut argc: libc::c_int, mut argv: *mut *mut libc::c_char)
 pub fn main() {
     let mut args: Vec<*mut libc::c_char> = Vec::new();
     for arg in ::std::env::args() {
-        args.push(::std::ffi::CString::new(arg).expect("Failed to convert argument into CString.").into_raw());
-    };
+        args.push(
+            ::std::ffi::CString::new(arg)
+                .expect("Failed to convert argument into CString.")
+                .into_raw(),
+        );
+    }
     args.push(::std::ptr::null_mut());
     unsafe {
-        ::std::process::exit(main_0((args.len() - 1) as libc::c_int,
-                                    args.as_mut_ptr() as
-                                        *mut *mut libc::c_char) as i32)
+        ::std::process::exit(main_0(
+            (args.len() - 1) as libc::c_int,
+            args.as_mut_ptr() as *mut *mut libc::c_char,
+        ) as i32)
     }
 }

@@ -1,7 +1,4 @@
-#![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case,
-         non_upper_case_globals, unused_assignments, unused_mut)]
-#![register_tool(c2rust)]
-#![feature(register_tool)]
+use ::libc;
 pub type node_type_t = libc::c_uint;
 pub const WHILE: node_type_t = 7;
 pub const IF: node_type_t = 6;
@@ -17,7 +14,7 @@ pub struct node_t {
     pub type_0: node_type_t,
 }
 #[no_mangle]
-pub unsafe extern "C" fn compile_ast(mut node: *mut node_t) -> bool {
+pub unsafe extern "C" fn compile_ast(mut _node: *mut node_t) -> bool {
     /* You should remove this cast to void in your solution.
      * It is just here so the code compiles without warnings. */
     return 0 as libc::c_int != 0;
