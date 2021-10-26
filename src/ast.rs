@@ -166,7 +166,7 @@ pub fn init_while_node(
             return None;
         }
         (Some(b), Some(c)) => {
-            let mut node = Rc::new(RefCell::new(Node::while_node {
+            let node = Rc::new(RefCell::new(Node::while_node {
                 body: b,
                 condition: c,
             }));
@@ -175,7 +175,7 @@ pub fn init_while_node(
     }
 }
 
-pub fn free_ast(mut node: Option<Rc<RefCell<Node>>>) {
+pub fn free_ast(node: Option<Rc<RefCell<Node>>>) {
     // let mut bor_reader = &*(*state.stream).borrow_mut();
     // let mut reader = bor_reader.take(1);
     match node {

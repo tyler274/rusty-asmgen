@@ -1,16 +1,17 @@
 use std::borrow::{Borrow, BorrowMut};
+use std::convert::TryInto;
 use std::error::Error;
 use std::fs::File;
 use std::io::{prelude::*, SeekFrom};
 use std::ops::Deref;
 use std::{cell::RefCell, rc::Rc};
 
-use super::ast::{
+use crate::ast::{
     free_ast, init_binary_node, init_if_node, init_let_node, init_num_node, init_print_node,
     init_sequence_node, init_var_node, init_while_node, Node,
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ParserState {
     pub stream: Rc<RefCell<File>>,
 }
@@ -75,7 +76,7 @@ pub fn rewind_one(state: &ParserState) {
  */
 
 pub fn advance(state: &ParserState) -> char {
-    let mut bor_reader = &*(*state.stream).borrow_mut();
+    let bor_reader = &*(*state.stream).borrow_mut();
     let mut reader = bor_reader.take(1);
 
     loop {
@@ -90,7 +91,7 @@ pub fn advance(state: &ParserState) -> char {
     }
 }
 
-pub fn try_advance(state: &ParserState, mut predicate: CharPredicate) -> char {
+pub fn try_advance(state: &ParserState, predicate: CharPredicate) -> char {
     let next: char = advance(state);
     if next != '\u{0}' && !predicate.expect("non-null function pointer")(next) {
         rewind_one(state);
@@ -99,8 +100,8 @@ pub fn try_advance(state: &ParserState, mut predicate: CharPredicate) -> char {
     return next;
 }
 
-pub fn advance_until_separator(state: &ParserState) -> Option<String> {
-    let mut result = String::with_capacity(MAX_KEYWORD_LENGTH + 1);
+pub fn advance_until_separator(state: &ParserState) -> Option<Vec<u8>> {
+    let mut result = Vec::with_capacity(MAX_KEYWORD_LENGTH + 1);
     assert!(result.capacity() == MAX_KEYWORD_LENGTH + 1);
 
     let mut index: usize = 0;
@@ -130,7 +131,7 @@ pub fn advance_until_separator(state: &ParserState) -> Option<String> {
         } else {
             let fresh0 = index;
             index = index.wrapping_add(1);
-            // result.as_bytes()[fresh0] = buf[0];
+            result[fresh0] = buf[0];
         }
     }
     // result.as_bytes()[index] = '\u{0}' as u8;
@@ -147,7 +148,7 @@ pub fn at_end(state: &ParserState) -> bool {
 
 pub fn skip_line(state: &ParserState) {
     // Rc::clone(&state.stream);
-    let mut bor_reader = &*(*state.stream).borrow_mut();
+    let bor_reader = &*(*state.stream).borrow_mut();
     let mut reader = bor_reader.take(1);
 
     // .take(1);
@@ -161,14 +162,13 @@ pub fn skip_line(state: &ParserState) {
 }
 
 pub fn num(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
-    let mut num_string = advance_until_separator(state);
+    let num_string = advance_until_separator(state);
     match num_string {
         Some(n_string) => {
-            let mut num_end: String = String::new();
-            let parse_result = n_string.parse::<i64>();
+            let parse_result = n_string.as_slice().try_into();
             match parse_result {
-                Ok(value) => Some(init_num_node(value)),
-                Err(e) => {
+                Ok(value) => Some(init_num_node(i64::from_ne_bytes(value))),
+                Err(_) => {
                     // drop(num_string);
                     None
                 }
@@ -180,13 +180,13 @@ pub fn num(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
 
 pub fn factor(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     if try_advance(state, Some(is_open_paren as fn(_: char) -> bool)) != '\0' {
-        let mut node = expression(state);
+        let node = expression(state);
         if try_advance(state, Some(is_close_paren as fn(_: char) -> bool)) == '\0' {
             return None;
         }
         return node;
     }
-    let mut var: char = try_advance(state, Some(is_variable_name as fn(_: char) -> bool));
+    let var: char = try_advance(state, Some(is_variable_name as fn(_: char) -> bool));
     if var != '\0' {
         return init_var_node(var);
     }
@@ -196,7 +196,7 @@ pub fn factor(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
 pub fn term(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     let mut result = factor(state);
     loop {
-        let mut next = try_advance(state, Some(is_factor_op as fn(_: char) -> bool));
+        let next = try_advance(state, Some(is_factor_op as fn(_: char) -> bool));
         if next == '\0' {
             break;
         }
@@ -208,7 +208,7 @@ pub fn term(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
 pub fn expression(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     let mut result = term(state);
     loop {
-        let mut next: char = try_advance(state, Some(is_term_op as fn(_: char) -> bool));
+        let next: char = try_advance(state, Some(is_term_op as fn(_: char) -> bool));
         if next == '\0' {
             break;
         }
@@ -218,31 +218,31 @@ pub fn expression(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
 }
 
 pub fn comparison(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
-    let mut left = expression(state);
-    let mut op: char = try_advance(state, Some(is_comparison_op as fn(_: char) -> bool));
+    let left = expression(state);
+    let op: char = try_advance(state, Some(is_comparison_op as fn(_: char) -> bool));
     return init_binary_node(op, left, expression(state));
 }
 
-pub fn statement(state: &ParserState, mut end: &mut bool) -> Option<Rc<RefCell<Node>>> {
+pub fn statement(state: &ParserState, end: &mut bool) -> Option<Rc<RefCell<Node>>> {
     while try_advance(state, Some(is_comment_start as fn(_: char) -> bool)) != '\0' {
         skip_line(state);
     }
-    let mut start: u64 = save_position(state);
-    let mut next: String = advance_until_separator(state).unwrap();
+    let start: u64 = save_position(state);
+    let mut next: Vec<u8> = advance_until_separator(state).unwrap();
     if next.is_empty() {
         *end = true;
         return None;
     }
-    if next == "ELSE\x00" {
+    if next == b"ELSE\x00" {
         drop(next);
         restore_position(state, start);
         *end = false;
         return None;
     }
-    if next == "END\x00" {
+    if next == b"END\x00" {
         drop(next);
         next = advance_until_separator(state).unwrap();
-        if next.is_empty() || !(next == "IF\x00") || next == "WHILE\x00" {
+        if next.is_empty() || !(next == b"IF\x00") || next == b"WHILE\x00" {
             drop(next);
             *end = false;
             return None;
@@ -253,34 +253,32 @@ pub fn statement(state: &ParserState, mut end: &mut bool) -> Option<Rc<RefCell<N
         return None;
     }
     *end = false;
-    if next == "PRINT\x00" {
+    if next == b"PRINT\x00" {
         drop(next);
         return init_print_node(expression(state));
     }
-    if next == "LET\x00" {
+    if next == b"LET\x00" {
         drop(next);
-        let mut var = advance(state);
-        if !(is_variable_name(var) as libc::c_int != 0
-            && advance(state) as libc::c_int == '=' as i32)
-        {
+        let var = advance(state);
+        if !(is_variable_name(var) && advance(state) == '=') {
             return None;
         }
         return init_let_node(var, expression(state));
     }
-    if next == "IF\x00" {
+    if next == b"IF\x00" {
         drop(next);
-        let mut condition = comparison(state);
-        let mut if_branch = sequence(&state);
+        let condition = comparison(state);
+        let if_branch = sequence(&state);
         next = advance_until_separator(state).unwrap();
         let mut else_branch: Option<Rc<RefCell<Node>>> = None;
-        if !next.is_empty() && next == "ELSE\x00" {
+        if !next.is_empty() && next == b"ELSE\x00" {
             drop(next);
             else_branch = sequence(&state);
             next = advance_until_separator(state).unwrap();
         } else {
             else_branch = None
         }
-        if next.is_empty() || next != "END\x00" {
+        if next.is_empty() || next != b"END\x00" {
             drop(next);
             free_ast(condition);
             free_ast(if_branch);
@@ -289,7 +287,7 @@ pub fn statement(state: &ParserState, mut end: &mut bool) -> Option<Rc<RefCell<N
         }
         drop(next);
         next = advance_until_separator(state).unwrap();
-        if next.is_empty() || next == "IF\x00" {
+        if next.is_empty() || next != b"IF\x00" {
             drop(next);
             free_ast(condition);
             free_ast(if_branch);
@@ -299,12 +297,12 @@ pub fn statement(state: &ParserState, mut end: &mut bool) -> Option<Rc<RefCell<N
         drop(next);
         return init_if_node(condition, if_branch, else_branch);
     }
-    if next == "WHILE\x00" {
+    if next == b"WHILE\x00" {
         drop(next);
-        let mut condition_0 = comparison(state);
-        let mut body = sequence(state.borrow());
+        let condition_0 = comparison(state);
+        let body = sequence(state.borrow());
         next = advance_until_separator(state).unwrap();
-        if next.is_empty() || next != "END\x00" {
+        if next.is_empty() || next != b"END\x00" {
             drop(next);
             free_ast(condition_0);
             free_ast(body);
@@ -312,7 +310,7 @@ pub fn statement(state: &ParserState, mut end: &mut bool) -> Option<Rc<RefCell<N
         }
         drop(next);
         next = advance_until_separator(state).unwrap();
-        if next.is_empty() || next != "WHILE\x00" {
+        if next.is_empty() || next != b"WHILE\x00" {
             drop(next);
             free_ast(condition_0);
             free_ast(body);
@@ -400,14 +398,14 @@ pub fn sequence(mut state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     return init_sequence_node(statement_count, statements);
 }
 
-pub fn parse(mut stream: File) -> Option<Rc<RefCell<Node>>> {
-    let mut state: ParserState = ParserState {
+pub fn parse(stream: File) -> Option<Rc<RefCell<Node>>> {
+    let state = ParserState {
         stream: Rc::new(RefCell::new(stream)),
     };
     let ast = sequence(state.borrow());
-    // if !at_end(&mut state) {
-    //     free_ast(ast);
-    //     return;
-    // }
+    if !at_end(&state) {
+        free_ast(ast);
+        return None;
+    }
     return ast;
 }
