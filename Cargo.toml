@@ -3,17 +3,13 @@ members = [
 ]
 
 [package]
-name = "c2rust_out"
-authors = ["C2Rust"]
+name = "asmgen"
+authors = ["C2Rust", "Tyler Port"]
 version = "0.0.0"
 publish = false
 edition = "2018"
 autobins = false
 
-[lib]
-name = "c2rust_out"
-path = "c2rust-lib.rs"
-crate-type = ["staticlib", "rlib"]
 
 
 [[bin]]
