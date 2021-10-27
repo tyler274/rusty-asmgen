@@ -2,9 +2,7 @@ pub mod ast;
 pub mod compile;
 pub mod parser;
 
-use std::cell::RefCell;
-use std::fs::File;
-use std::rc::Rc;
+use std::{cell::RefCell, fs::File, rc::Rc};
 
 use ast::{free_ast, print_ast, Node};
 use compile::compile_ast;
@@ -20,7 +18,7 @@ pub fn usage(program: &str) {
  * goes between the header and the footer.
  */
 pub fn header() {
-    println!("# The code section of the assembly file\n.text\n.globl basic_main\nbasic_main:\n    # The main() function");
+    print!("# The code section of the assembly file\n.text\n.globl basic_main\nbasic_main:\n    # The main() function\n");
 }
 /* *
  * Prints the end of the x86-64 assembly output.
@@ -29,7 +27,7 @@ pub fn header() {
  */
 pub fn footer() {
     // printf(b"    ret\n\x00" as *const u8 as *const libc::c_char);
-    println!("    ret");
+    print!("    ret\n");
 }
 fn main_0(argc: usize, argv: Vec<String>) -> i32 {
     if argc != 2 {
@@ -49,15 +47,11 @@ fn main_0(argc: usize, argv: Vec<String>) -> i32 {
                 eprintln!("Error: {}", e);
             }
         }
-        // if program.is_null() {
-        //     usage(argv.get(0));
-        // }
         header();
         ast = parse(program);
         // file is dropped when this scope exits.
     }
 
-    // just stubbing this, we actually want to check if the parse happened
     match ast.clone() {
         None => {
             eprintln!("Parse error");

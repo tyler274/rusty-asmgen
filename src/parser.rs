@@ -3,6 +3,7 @@ use std::convert::TryInto;
 
 use std::fs::File;
 use std::io::{prelude::*, SeekFrom};
+use std::ops::Deref;
 use std::{cell::RefCell, rc::Rc};
 
 use crate::ast::{
@@ -353,7 +354,27 @@ pub fn sequence(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     }
     // Avoid allocating a sequence_node_t if there is only one statement
     if statement_count == 1 {
-        return Some((*((*((*statements).borrow()))[0].as_ref().unwrap())).clone());
+        return Some(
+            statements
+                .deref()
+                .borrow()
+                .deref()
+                .deref()
+                .get(0)
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .clone(),
+        );
+        // return Some(
+        //     statements.deref().borrow().deref().deref()[0]
+        //         .as_ref()
+        //         .unwrap()
+        //         .clone(),
+        // );
+        // This is a sin upon god and anime, the parenthesis and derefs were needed to
+        // make the type checker play nice.
+        // return Some((*((*((*statements).borrow()))[0].as_ref().unwrap())).clone());
     }
     if statement_count > 0 {
         statements.borrow_mut().resize(statement_count, None);

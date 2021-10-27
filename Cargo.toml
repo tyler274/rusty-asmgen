@@ -7,8 +7,7 @@ name = "asmgen"
 authors = ["C2Rust", "Tyler Port"]
 version = "0.0.0"
 publish = false
-edition = "2018"
-autobins = false
+edition = '2021'
 
 
 [[bin]]
@@ -16,7 +15,7 @@ path = "src/compiler.rs"
 name = "compiler"
 
 [dependencies]
-libc = "0.2"
+# libc = "0.2"
 
 
 
