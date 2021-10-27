@@ -3,7 +3,7 @@ use std::{cell::RefCell, fs::File, rc::Rc};
 
 use asmgen::ast::{free_ast, print_ast, Node};
 use asmgen::compile::compile_ast;
-use asmgen::compiler::{footer, header, usage};
+use asmgen::compiler::{footer, header};
 use asmgen::parser::parse;
 
 #[test]

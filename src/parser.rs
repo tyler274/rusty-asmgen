@@ -77,10 +77,9 @@ pub fn rewind_one(state: &ParserState) {
 
 pub fn advance(state: &ParserState) -> u8 {
     let bor_reader = &*(*state.stream).borrow_mut();
-    let mut reader = bor_reader.take(1);
-
     loop {
-        let mut buf = [0; 10];
+        let mut reader = bor_reader.take(1);
+        let mut buf = [0; 1];
         let result = reader.read(&mut buf).unwrap();
         if result == 0 {
             return b'\0';
@@ -107,8 +106,9 @@ pub fn advance_until_separator(state: &ParserState) -> Option<Vec<u8>> {
     // let mut index: usize = 0;
 
     let bor_reader = &*(*state.stream).borrow_mut();
-    let mut reader = bor_reader.take(1);
+
     'outer: loop {
+        let mut reader = bor_reader.take(1);
         if result.len() > MAX_KEYWORD_LENGTH {
             drop(result);
             return None;
@@ -160,11 +160,12 @@ pub fn at_end(state: &ParserState) -> bool {
 
 pub fn skip_line(state: &ParserState) {
     let bor_reader = &*(*state.stream).borrow_mut();
-    let mut reader = bor_reader.take(1);
+    // let mut reader = bor_reader.take(1);
     loop {
-        let mut buf = [0; 10];
+        let mut reader = bor_reader.take(1);
+        let mut buf = [0; 1];
         let result = reader.read(&mut buf).expect("Error skipping line");
-        if result == 0 || (buf[0] as u8) == b'\n' {
+        if result == 0 || buf[0] == b'\n' {
             break;
         }
     }
@@ -174,12 +175,19 @@ pub fn num(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     let num_string = advance_until_separator(state);
     match num_string {
         Some(n_string) => {
-            let parse_result = n_string.as_slice().try_into();
+            let parse_result = std::str::from_utf8(n_string.as_slice());
             match parse_result {
-                Ok(value) => Some(init_num_node(i64::from_ne_bytes(value))),
+                Ok(value) => {
+                    // the god damn null terminator really got me here
+                    let val = &value[0..value.len() - 1];
+                    let num = i64::from_str_radix(val, 10).expect(
+                        "parsing into an i64 failed, check for terminator and whitespace handling",
+                    );
+                    return Some(init_num_node(num));
+                }
                 Err(_) => {
                     // drop(num_string);
-                    None
+                    return None;
                 }
             }
         }
@@ -237,97 +245,154 @@ pub fn statement(state: &ParserState, end: &mut bool) -> Option<Rc<RefCell<Node>
         skip_line(state);
     }
     let start: u64 = save_position(state);
-    let mut next: Vec<u8> = advance_until_separator(state).unwrap();
-    if next.is_empty() {
-        *end = true;
-        return None;
-    }
-    if next == b"ELSE\x00" {
-        drop(next);
-        restore_position(state, start);
-        *end = false;
-        return None;
-    }
-    if next == b"END\x00" {
-        drop(next);
-        next = advance_until_separator(state).unwrap();
-        if next.is_empty() || !(next == b"IF\x00") || next == b"WHILE\x00" {
-            drop(next);
-            *end = false;
+    let mut next = advance_until_separator(state);
+    match next.clone() {
+        Some(next_token) => match next_token.as_slice() {
+            b"ELSE\x00" => {
+                drop(next_token);
+                restore_position(state, start);
+                *end = false;
+                return None;
+            }
+            b"END\x00" => {
+                drop(next);
+                next = advance_until_separator(state);
+                match next.clone() {
+                    Some(next_token) => {
+                        if !(next_token == b"IF\x00" || next_token == b"WHILE\x00") {
+                            drop(next_token);
+                            *end = false;
+                            return None;
+                        }
+                    }
+                    None => {
+                        drop(next_token);
+                        *end = false;
+                        return None;
+                    }
+                }
+
+                drop(next);
+                restore_position(state, start);
+                *end = true;
+                return None;
+            }
+            b"PRINT\x00" => {
+                *end = false;
+                drop(next_token);
+                return init_print_node(expression(state));
+            }
+            b"LET\x00" => {
+                *end = false;
+                drop(next_token);
+                let var = advance(state);
+                if !(is_variable_name(var) && advance(state) == b'=') {
+                    return None;
+                }
+                return init_let_node(var, expression(state));
+            }
+            b"IF\x00" => {
+                *end = false;
+                drop(next_token);
+                let condition = comparison(state);
+                let if_branch = sequence(&state);
+                next = advance_until_separator(state);
+                let else_branch: Option<Rc<RefCell<Node>>>;
+                match next.clone() {
+                    Some(next_token) => match next_token.as_slice() {
+                        b"ELSE\x00" => {
+                            drop(next);
+                            else_branch = sequence(&state);
+                            next = advance_until_separator(state);
+                        }
+                        _ => {
+                            else_branch = None;
+                        }
+                    },
+                    None => {
+                        else_branch = None;
+                    }
+                }
+
+                match next.clone() {
+                    Some(next_token) => match next_token.as_slice() {
+                        b"END\x00" => {}
+                        _ => {
+                            drop(next);
+                            free_ast(condition);
+                            free_ast(if_branch);
+                            free_ast(else_branch);
+                            return None;
+                        }
+                    },
+                    None => {
+                        drop(next);
+                        free_ast(condition);
+                        free_ast(if_branch);
+                        free_ast(else_branch);
+                        return None;
+                    }
+                }
+
+                drop(next);
+                next = advance_until_separator(state);
+                match next.clone() {
+                    Some(next_token) => match next_token.as_slice() {
+                        b"IF\x00" => {}
+                        _ => {
+                            drop(next);
+                            free_ast(condition);
+                            free_ast(if_branch);
+                            free_ast(else_branch);
+                            return None;
+                        }
+                    },
+                    None => {
+                        drop(next);
+                        free_ast(condition);
+                        free_ast(if_branch);
+                        free_ast(else_branch);
+                        return None;
+                    }
+                }
+
+                drop(next);
+                return init_if_node(condition, if_branch, else_branch);
+            }
+            b"WHILE\x00" => {
+                drop(next);
+                let condition_0 = comparison(state);
+                let body = sequence(state.borrow());
+                next = advance_until_separator(state);
+                match next.clone() {
+                    Some(next_token) => match next_token.as_slice() {
+                        b"WHILE\x00" => {}
+                        _ => {
+                            drop(next);
+                            free_ast(condition_0);
+                            free_ast(body);
+                            return None;
+                        }
+                    },
+                    None => {
+                        drop(next);
+                        free_ast(condition_0);
+                        free_ast(body);
+                        return None;
+                    }
+                }
+
+                drop(next);
+                return init_while_node(condition_0, body);
+            }
+            _ => {}
+        },
+        None => {
+            *end = true;
             return None;
         }
-        drop(next);
-        restore_position(state, start);
-        *end = true;
-        return None;
     }
-    *end = false;
-    if next == b"PRINT\x00" {
-        drop(next);
-        return init_print_node(expression(state));
-    }
-    if next == b"LET\x00" {
-        drop(next);
-        let var = advance(state);
-        if !(is_variable_name(var) && advance(state) == b'=') {
-            return None;
-        }
-        return init_let_node(var, expression(state));
-    }
-    if next == b"IF\x00" {
-        drop(next);
-        let condition = comparison(state);
-        let if_branch = sequence(&state);
-        next = advance_until_separator(state).unwrap();
-        let else_branch: Option<Rc<RefCell<Node>>>;
-        if !next.is_empty() && next == b"ELSE\x00" {
-            drop(next);
-            else_branch = sequence(&state);
-            next = advance_until_separator(state).unwrap();
-        } else {
-            else_branch = None
-        }
-        if next.is_empty() || next != b"END\x00" {
-            drop(next);
-            free_ast(condition);
-            free_ast(if_branch);
-            free_ast(else_branch);
-            return None;
-        }
-        drop(next);
-        next = advance_until_separator(state).unwrap();
-        if next.is_empty() || next != b"IF\x00" {
-            drop(next);
-            free_ast(condition);
-            free_ast(if_branch);
-            free_ast(else_branch);
-            return None;
-        }
-        drop(next);
-        return init_if_node(condition, if_branch, else_branch);
-    }
-    if next == b"WHILE\x00" {
-        drop(next);
-        let condition_0 = comparison(state);
-        let body = sequence(state.borrow());
-        next = advance_until_separator(state).unwrap();
-        if next.is_empty() || next != b"END\x00" {
-            drop(next);
-            free_ast(condition_0);
-            free_ast(body);
-            return None;
-        }
-        drop(next);
-        next = advance_until_separator(state).unwrap();
-        if next.is_empty() || next != b"WHILE\x00" {
-            drop(next);
-            free_ast(condition_0);
-            free_ast(body);
-            return None;
-        }
-        drop(next);
-        return init_while_node(condition_0, body);
-    }
+
     drop(next);
     return None;
 }
@@ -395,7 +460,7 @@ pub fn sequence(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
 }
 
 pub fn parse(stream: File) -> Option<Rc<RefCell<Node>>> {
-    eprintln!("{} stream length", stream.metadata().unwrap().len());
+    // eprintln!("{} stream length", stream.metadata().unwrap().len());
     let state = ParserState {
         stream: Rc::new(RefCell::new(stream)),
     };

@@ -84,6 +84,31 @@
             "sourceMap": {
                 "/rustc/09c42c45858d5f3aedfa670698275303a3d19afa/": "/home/tport/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/"
             }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'stage2'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=stage2",
+                    "--package=asmgen"
+                ],
+                "filter": {
+                    "name": "stage2",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": [
+                "rust"
+            ],
+            "sourceMap": {
+                "/rustc/09c42c45858d5f3aedfa670698275303a3d19afa/": "/home/tport/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/"
+            }
         }
     ]
 }
