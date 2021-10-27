@@ -2,6 +2,7 @@ CC = clang-with-asan
 CFLAGS = -Iinclude -Wall -Wextra -fno-sanitize=integer
 ASM = clang
 
+
 COMPILE_TESTS_1 =                    $(sort $(wildcard progs/stage1-*.bas))
 COMPILE_TESTS_2 = $(COMPILE_TESTS_1) $(sort $(wildcard progs/stage2-*.bas))
 COMPILE_TESTS_3 = $(COMPILE_TESTS_2) $(sort $(wildcard progs/stage3-*.bas))

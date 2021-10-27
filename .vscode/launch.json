@@ -1,0 +1,89 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'asmgen'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=asmgen"
+                ],
+                "filter": {
+                    "name": "asmgen",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'asmgen'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=asmgen",
+                    "--package=asmgen"
+                ],
+                "filter": {
+                    "name": "asmgen",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'asmgen'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=asmgen",
+                    "--package=asmgen"
+                ],
+                "filter": {
+                    "name": "asmgen",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'stage1'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=stage1",
+                    "--package=asmgen"
+                ],
+                "filter": {
+                    "name": "stage1",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": [
+                "rust"
+            ],
+            "sourceMap": {
+                "/rustc/09c42c45858d5f3aedfa670698275303a3d19afa/": "/home/tport/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/"
+            }
+        }
+    ]
+}

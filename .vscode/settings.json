@@ -3,5 +3,6 @@
     "files.associations": {
         "compile.h": "c",
         "ast.h": "c"
-    }
+    },
+
 }

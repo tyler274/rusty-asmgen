@@ -10,9 +10,9 @@ publish = false
 edition = '2021'
 
 
-[[bin]]
-path = "src/compiler.rs"
-name = "compiler"
+# [[bin]]
+# path = "src/compiler.rs"
+# name = "compiler"
 
 [dependencies]
 # libc = "0.2"

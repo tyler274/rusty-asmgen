@@ -1,6 +1,5 @@
 use std::borrow::Borrow;
 use std::cell::RefCell;
-use std::char;
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -9,12 +8,12 @@ pub enum Node {
         value: i64,
     },
     Binary {
-        op: char,
+        op: u8,
         left: Rc<RefCell<Node>>,
         right: Rc<RefCell<Node>>,
     },
     Var {
-        name: char,
+        name: u8,
     },
     Sequence {
         statement_count: usize,
@@ -24,7 +23,7 @@ pub enum Node {
         expr: Rc<RefCell<Node>>,
     },
     LetNode {
-        var: char,
+        var: u8,
         value: Rc<RefCell<Node>>,
     },
     IfNode {
@@ -43,7 +42,7 @@ pub fn init_num_node(value: i64) -> Rc<RefCell<Node>> {
 }
 
 pub fn init_binary_node(
-    op: char,
+    op: u8,
     left: Option<Rc<RefCell<Node>>>,
     right: Option<Rc<RefCell<Node>>>,
 ) -> Option<Rc<RefCell<Node>>> {
@@ -69,8 +68,8 @@ pub fn init_binary_node(
     }
 }
 
-pub fn init_var_node(name: char) -> Option<Rc<RefCell<Node>>> {
-    if name == '\u{0}' {
+pub fn init_var_node(name: u8) -> Option<Rc<RefCell<Node>>> {
+    if name == b'\0' {
         return None;
     }
     let node = Node::Var { name };
@@ -99,14 +98,14 @@ pub fn init_print_node(expression: Option<Rc<RefCell<Node>>>) -> Option<Rc<RefCe
     }
 }
 
-pub fn init_let_node(var: char, value: Option<Rc<RefCell<Node>>>) -> Option<Rc<RefCell<Node>>> {
-    if var == '\u{0}' {
+pub fn init_let_node(var: u8, value: Option<Rc<RefCell<Node>>>) -> Option<Rc<RefCell<Node>>> {
+    if var == b'\0' {
         free_ast(value);
         return None;
     }
     let node = Rc::new(RefCell::new(Node::LetNode {
         var,
-        value: value.unwrap(),
+        value: value.expect(&format!("Error initing LET node with var : {}", var)),
     }));
     return Some(node);
 }

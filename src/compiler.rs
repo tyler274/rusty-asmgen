@@ -1,12 +1,8 @@
-pub mod ast;
-pub mod compile;
-pub mod parser;
-
 use std::{cell::RefCell, fs::File, rc::Rc};
 
-use ast::{free_ast, print_ast, Node};
-use compile::compile_ast;
-use parser::parse;
+use crate::ast::{free_ast, print_ast, Node};
+use crate::compile::compile_ast;
+use crate::parser::parse;
 
 pub fn usage(program: &str) {
     eprint!("USAGE: {} <program file>\n", program);
@@ -29,7 +25,7 @@ pub fn footer() {
     // printf(b"    ret\n\x00" as *const u8 as *const libc::c_char);
     print!("    ret\n");
 }
-fn main_0(argc: usize, argv: Vec<String>) -> i32 {
+pub fn main_0(argc: usize, argv: Vec<String>) -> i32 {
     if argc != 2 {
         usage(argv.get(0).unwrap());
     }
@@ -48,6 +44,7 @@ fn main_0(argc: usize, argv: Vec<String>) -> i32 {
             }
         }
         header();
+
         ast = parse(program);
         // file is dropped when this scope exits.
     }
@@ -72,12 +69,4 @@ fn main_0(argc: usize, argv: Vec<String>) -> i32 {
     free_ast(ast);
     footer();
     return 0;
-}
-
-#[main]
-pub fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    // args.push(::std::ptr::null_mut());
-
-    std::process::exit(main_0(args.len(), args) as i32);
 }
