@@ -60,7 +60,7 @@ pub fn main_0(argc: usize, argv: Vec<String>) -> i32 {
             // Compile the AST into assembly instructions
             if !compile_ast(u_ast.clone()) {
                 free_ast(ast);
-                eprintln!("Compilation error\n");
+                eprint!("Compilation error\n");
                 return 3;
             }
         }
