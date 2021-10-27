@@ -57,18 +57,18 @@ pub fn is_comment_start(c: u8) -> bool {
 }
 
 pub fn save_position(state: &ParserState) -> u64 {
-    let mut bor_reader = &*(*state.stream).borrow_mut();
+    let mut bor_reader = &*(*state.stream).borrow();
     bor_reader.seek(SeekFrom::Current(0)).unwrap()
 }
 
 pub fn restore_position(state: &ParserState, position: u64) {
-    let mut bor_reader = &*(*state.stream).borrow_mut();
+    let mut bor_reader = &*(*state.stream).borrow();
     bor_reader.seek(SeekFrom::Start(position)).unwrap();
     // fseek((*state).stream, position as libc::c_long, 0 as libc::c_int);
 }
 
 pub fn rewind_one(state: &ParserState) {
-    let mut bor_reader = &*(*state.stream).borrow_mut();
+    let mut bor_reader = &*(*state.stream).borrow();
     bor_reader.seek(SeekFrom::Current(-1)).unwrap();
 }
 /*
@@ -76,7 +76,7 @@ pub fn rewind_one(state: &ParserState) {
  */
 
 pub fn advance(state: &ParserState) -> u8 {
-    let bor_reader = &*(*state.stream).borrow_mut();
+    let bor_reader = &*(*state.stream).borrow();
     loop {
         let mut reader = bor_reader.take(1);
         let mut buf = [0; 1];
@@ -105,7 +105,7 @@ pub fn advance_until_separator(state: &ParserState) -> Option<Vec<u8>> {
 
     // let mut index: usize = 0;
 
-    let bor_reader = &*(*state.stream).borrow_mut();
+    let bor_reader = &*(*state.stream).borrow();
 
     'outer: loop {
         let mut reader = bor_reader.take(1);

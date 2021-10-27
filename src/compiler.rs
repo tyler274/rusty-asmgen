@@ -22,7 +22,6 @@ pub fn header() {
  * goes between the header and the footer.
  */
 pub fn footer() {
-    // printf(b"    ret\n\x00" as *const u8 as *const libc::c_char);
     print!("    ret\n");
 }
 pub fn main_0(argc: usize, argv: Vec<String>) -> i32 {
