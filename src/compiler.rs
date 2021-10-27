@@ -1,21 +1,9 @@
-// #![allow(
-//     dead_code,
-//     mutable_transmutes,
-//     non_camel_case_types,
-//     non_snake_case,
-//     non_upper_case_globals,
-//     unused_assignments,
-//     unused_mut
-// )]
-// #![register_tool(c2rust)]
-// #![feature(extern_types, register_tool)]
 pub mod ast;
 pub mod compile;
 pub mod parser;
 
 use std::cell::RefCell;
 use std::fs::File;
-use std::io::prelude::*;
 use std::rc::Rc;
 
 use ast::{free_ast, print_ast, Node};
@@ -23,13 +11,7 @@ use compile::compile_ast;
 use parser::parse;
 
 pub fn usage(program: &str) {
-    eprintln!("USAGE: {} <program file>\n", program);
-    // fprintf(
-    //     stderr,
-    //     b"USAGE: %s <program file>\n\x00" as *const u8 as *const libc::c_char,
-    //     program,
-    // );
-    // exit(1 as libc::c_int);
+    eprint!("USAGE: {} <program file>\n", program);
     std::process::exit(1)
 }
 /* *
@@ -53,16 +35,26 @@ fn main_0(argc: usize, argv: Vec<String>) -> i32 {
     if argc != 2 {
         usage(argv.get(0).unwrap());
     }
-    let mut ast: Option<Rc<RefCell<Node>>> = None;
+    let ast: Option<Rc<RefCell<Node>>>;
     {
         let program = File::open(argv.get(1).unwrap()).unwrap();
+        match program.metadata() {
+            Ok(metadata) => {
+                if metadata.len() == 0 {
+                    usage(argv.get(0).unwrap());
+                }
+            }
+            Err(e) => {
+                usage(argv.get(0).unwrap());
+                eprintln!("Error: {}", e);
+            }
+        }
         // if program.is_null() {
         //     usage(argv.get(0));
         // }
         header();
         ast = parse(program);
-        // ast = Some(" ".to_string());
-        // fclose(program);
+        // file is dropped when this scope exits.
     }
 
     // just stubbing this, we actually want to check if the parse happened

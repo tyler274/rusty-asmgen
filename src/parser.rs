@@ -1,9 +1,8 @@
-use std::borrow::{Borrow, BorrowMut};
+use std::borrow::Borrow;
 use std::convert::TryInto;
-use std::error::Error;
+
 use std::fs::File;
 use std::io::{prelude::*, SeekFrom};
-use std::ops::Deref;
 use std::{cell::RefCell, rc::Rc};
 
 use crate::ast::{
@@ -106,7 +105,7 @@ pub fn advance_until_separator(state: &ParserState) -> Option<Vec<u8>> {
 
     let mut index: usize = 0;
 
-    let mut bor_reader = &*(*state.stream).borrow_mut();
+    let bor_reader = &*(*state.stream).borrow_mut();
     let mut reader = bor_reader.take(1);
     loop {
         if index > MAX_KEYWORD_LENGTH {
@@ -134,7 +133,7 @@ pub fn advance_until_separator(state: &ParserState) -> Option<Vec<u8>> {
             result[fresh0] = buf[0];
         }
     }
-    // result.as_bytes()[index] = '\u{0}' as u8;
+    result[index] = '\u{0}' as u8;
     return Some(result);
 }
 
@@ -147,11 +146,8 @@ pub fn at_end(state: &ParserState) -> bool {
 }
 
 pub fn skip_line(state: &ParserState) {
-    // Rc::clone(&state.stream);
     let bor_reader = &*(*state.stream).borrow_mut();
     let mut reader = bor_reader.take(1);
-
-    // .take(1);
     loop {
         let mut buf = [0; 10];
         let result = reader.read(&mut buf).unwrap();
@@ -270,7 +266,7 @@ pub fn statement(state: &ParserState, end: &mut bool) -> Option<Rc<RefCell<Node>
         let condition = comparison(state);
         let if_branch = sequence(&state);
         next = advance_until_separator(state).unwrap();
-        let mut else_branch: Option<Rc<RefCell<Node>>> = None;
+        let else_branch: Option<Rc<RefCell<Node>>>;
         if !next.is_empty() && next == b"ELSE\x00" {
             drop(next);
             else_branch = sequence(&state);
@@ -323,77 +319,44 @@ pub fn statement(state: &ParserState, end: &mut bool) -> Option<Rc<RefCell<Node>
     return None;
 }
 
-pub fn sequence(mut state: &ParserState) -> Option<Rc<RefCell<Node>>> {
+pub fn sequence(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     let mut statement_count: usize = 0;
-    let mut statements: Rc<RefCell<Vec<Rc<RefCell<Node>>>>> = Rc::new(RefCell::new(Vec::new()));
+    let statements: Rc<RefCell<Vec<Option<Rc<RefCell<Node>>>>>> = Rc::new(RefCell::new(Vec::new()));
     let mut statement_capacity: usize = 0;
     loop {
-        // let mut end: bool = false;
-        // let mut next: *mut node_t = statement(state, &mut end);
-        // if end {
-        //     break;
-        // }
-        // if next.is_null() {
-        //     let mut i: size_t = 0 as libc::c_int as size_t;
-        //     while i < statement_count {
-        //         free_ast(*statements.offset(i as isize));
-        //         i = i.wrapping_add(1)
-        //     }
-        //     free(statements as *mut libc::c_void);
-        //     return 0 as *mut node_t;
-        // }
-        // if statement_count == statement_capacity {
-        //     statement_capacity = if statement_capacity > 0 as libc::c_int as libc::c_ulong {
-        //         statement_capacity.wrapping_mul(2 as libc::c_int as libc::c_ulong)
-        //     } else {
-        //         1 as libc::c_int as libc::c_ulong
-        //     };
-        //     statements = realloc(
-        //         statements as *mut libc::c_void,
-        //         (::std::mem::size_of::<*mut node_t>() * statement_capacity as usize)
-        //             as libc::c_ulong,
-        //     ) as *mut *mut node_t;
-        //     if !statements.is_null() {
-        //     } else {
-        //         __assert_fail(
-        //             b"statements != NULL\x00" as *const u8 as *const libc::c_char,
-        //             b"src/parser.c\x00" as *const u8 as *const libc::c_char,
-        //             344 as libc::c_int as libc::c_uint,
-        //             (*::std::mem::transmute::<&[u8; 35], &[libc::c_char; 35]>(
-        //                 b"node_t *sequence(parser_state_t *)\x00",
-        //             ))
-        //             .as_ptr(),
-        //         );
-        //     }
-        // }
-        // let fresh1 = statement_count;
-        // statement_count = statement_count.wrapping_add(1);
-        // let ref mut fresh2 = *statements.offset(fresh1 as isize);
-        // *fresh2 = next
+        let mut end: bool = false;
+        let next = statement(state, &mut end);
+        if end {
+            break;
+        }
+        match next {
+            Some(node) => {
+                if statement_count == statement_capacity {
+                    statement_capacity = if statement_capacity > 0 {
+                        statement_capacity * 2
+                    } else {
+                        1
+                    };
+                    statements.borrow_mut().resize(statement_capacity, None)
+                }
+                (*statements.borrow_mut())[statement_count] = Some(node);
+                statement_count += 1;
+            }
+            None => {
+                for i in 0..statement_count {
+                    free_ast(statements.borrow_mut()[i].clone());
+                }
+                drop(statements);
+                return None;
+            }
+        }
     }
     // Avoid allocating a sequence_node_t if there is only one statement
-    // if statement_count == 1 {
-    //     let mut statement_0: *mut node_t = *statements;
-    //     // free(statements as *mut libc::c_void);
-    //     return statement_0;
-    // }
+    if statement_count == 1 {
+        return Some((*((*((*statements).borrow()))[0].as_ref().unwrap())).clone());
+    }
     if statement_count > 0 {
-        // statements = realloc(
-        //     statements as *mut libc::c_void,
-        //     (::std::mem::size_of::<*mut node_t>() * statement_count as usize) as libc::c_ulong,
-        // ) as *mut *mut node_t;
-        // if !statements.is_null() {
-        // } else {
-        //     __assert_fail(
-        //         b"statements != NULL\x00" as *const u8 as *const libc::c_char,
-        //         b"src/parser.c\x00" as *const u8 as *const libc::c_char,
-        //         358 as libc::c_int as libc::c_uint,
-        //         (*::std::mem::transmute::<&[u8; 35], &[libc::c_char; 35]>(
-        //             b"node_t *sequence(parser_state_t *)\x00",
-        //         ))
-        //         .as_ptr(),
-        //     );
-        // }
+        statements.borrow_mut().resize(statement_count, None);
     }
     return init_sequence_node(statement_count, statements);
 }
