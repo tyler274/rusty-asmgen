@@ -273,7 +273,7 @@ pub fn print_ast_indented(node: Option<Rc<RefCell<Node>>>, indent: usize) {
                         eprint!(",\n");
                         print_ast_indented(Some(e_branch.clone()), indent);
                     }
-                    None => todo!(),
+                    None => {}
                 }
                 print_indent(indent);
                 eprint!(")\n");

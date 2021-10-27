@@ -1,5 +1,4 @@
 use std::borrow::Borrow;
-use std::convert::TryInto;
 
 use std::fs::File;
 use std::io::{prelude::*, SeekFrom};
@@ -159,7 +158,7 @@ pub fn at_end(state: &ParserState) -> bool {
 }
 
 pub fn skip_line(state: &ParserState) {
-    let bor_reader = &*(*state.stream).borrow_mut();
+    let bor_reader = &*(*state.stream).borrow();
     // let mut reader = bor_reader.take(1);
     loop {
         let mut reader = bor_reader.take(1);
@@ -438,7 +437,7 @@ pub fn sequence(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
                 .deref()
                 .deref()
                 .get(0)
-                .unwrap()
+                .expect("Failed to return a single statement")
                 .as_ref()
                 .unwrap()
                 .clone(),

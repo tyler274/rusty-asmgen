@@ -109,6 +109,131 @@
             "sourceMap": {
                 "/rustc/09c42c45858d5f3aedfa670698275303a3d19afa/": "/home/tport/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/"
             }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'stage3'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=stage3",
+                    "--package=asmgen"
+                ],
+                "filter": {
+                    "name": "stage3",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": [
+                "rust"
+            ],
+            "sourceMap": {
+                "/rustc/09c42c45858d5f3aedfa670698275303a3d19afa/": "/home/tport/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'stage4'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=stage4",
+                    "--package=asmgen"
+                ],
+                "filter": {
+                    "name": "stage4",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": [
+                "rust"
+            ],
+            "sourceMap": {
+                "/rustc/09c42c45858d5f3aedfa670698275303a3d19afa/": "/home/tport/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'stage5'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=stage5",
+                    "--package=asmgen"
+                ],
+                "filter": {
+                    "name": "stage5",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": [
+                "rust"
+            ],
+            "sourceMap": {
+                "/rustc/09c42c45858d5f3aedfa670698275303a3d19afa/": "/home/tport/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'stage6'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=stage6",
+                    "--package=asmgen"
+                ],
+                "filter": {
+                    "name": "stage6",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": [
+                "rust"
+            ],
+            "sourceMap": {
+                "/rustc/09c42c45858d5f3aedfa670698275303a3d19afa/": "/home/tport/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'stage7'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=stage7",
+                    "--package=asmgen"
+                ],
+                "filter": {
+                    "name": "stage7",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": [
+                "rust"
+            ],
+            "sourceMap": {
+                "/rustc/09c42c45858d5f3aedfa670698275303a3d19afa/": "/home/tport/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/"
+            }
         }
     ]
 }
