@@ -423,6 +423,7 @@ pub fn sequence(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
                 for i in 0..statement_count {
                     free_ast(statements.borrow_mut()[i].clone());
                 }
+                eprint!("\n oh no Sequence Node returned None\n");
                 drop(statements);
                 return None;
             }
@@ -467,6 +468,7 @@ pub fn parse(stream: File) -> Option<Rc<RefCell<Node>>> {
     let ast = sequence(state.borrow());
     if !at_end(&state) {
         free_ast(ast);
+        eprint!("\n oh no AST didn't finish processing\n");
         return None;
     }
     return ast;
