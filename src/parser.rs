@@ -75,7 +75,8 @@ pub fn rewind_one(state: &ParserState) {
  */
 
 pub fn advance(state: &ParserState) -> u8 {
-    let bor_reader = &*(*state.stream).borrow();
+    // let bor_reader = &*(*state.stream).borrow();
+    let bor_reader = &*(state.stream.deref()).borrow();
     loop {
         let mut reader = bor_reader.take(1);
         let mut buf = [0; 1];
@@ -248,9 +249,10 @@ pub fn statement(state: &ParserState, end: &mut bool) -> Option<Rc<RefCell<Node>
     match next.clone() {
         Some(next_token) => match next_token.as_slice() {
             b"ELSE\x00" => {
-                drop(next_token);
+                drop(next);
                 restore_position(state, start);
-                *end = false;
+                *end = true;
+                eprint!("Else token, returning None\n");
                 return None;
             }
             b"END\x00" => {
@@ -261,12 +263,14 @@ pub fn statement(state: &ParserState, end: &mut bool) -> Option<Rc<RefCell<Node>
                         if !(next_token == b"IF\x00" || next_token == b"WHILE\x00") {
                             drop(next_token);
                             *end = false;
+                            eprint!("IF or WHILE token, returning None\n");
                             return None;
                         }
                     }
                     None => {
-                        drop(next_token);
+                        drop(next);
                         *end = false;
+                        eprint!("no IF or WHILE token, returning None\n");
                         return None;
                     }
                 }
@@ -278,12 +282,12 @@ pub fn statement(state: &ParserState, end: &mut bool) -> Option<Rc<RefCell<Node>
             }
             b"PRINT\x00" => {
                 *end = false;
-                drop(next_token);
+                drop(next);
                 return init_print_node(expression(state));
             }
             b"LET\x00" => {
                 *end = false;
-                drop(next_token);
+                drop(next);
                 let var = advance(state);
                 if !(is_variable_name(var) && advance(state) == b'=') {
                     return None;
@@ -292,16 +296,16 @@ pub fn statement(state: &ParserState, end: &mut bool) -> Option<Rc<RefCell<Node>
             }
             b"IF\x00" => {
                 *end = false;
-                drop(next_token);
+                drop(next);
                 let condition = comparison(state);
-                let if_branch = sequence(&state);
+                let if_branch = sequence(state);
                 next = advance_until_separator(state);
                 let else_branch: Option<Rc<RefCell<Node>>>;
                 match next.clone() {
                     Some(next_token) => match next_token.as_slice() {
                         b"ELSE\x00" => {
                             drop(next);
-                            else_branch = sequence(&state);
+                            else_branch = sequence(state);
                             next = advance_until_separator(state);
                         }
                         _ => {
@@ -403,6 +407,23 @@ pub fn sequence(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     loop {
         let mut end: bool = false;
         let next = statement(state, &mut end);
+
+        // eprint!("Statments in this loop: \n");
+        // for i in 0..statement_count {
+        //     eprint!(
+        //         "    statement: {:#?}\n",
+        //         statements
+        //             .borrow_mut()
+        //             .get(i)
+        //             .as_ref()
+        //             .unwrap()
+        //             .as_ref()
+        //             .unwrap()
+        //             .deref()
+        //             .borrow()
+        //     );
+        // }
+
         if end {
             break;
         }
@@ -416,11 +437,37 @@ pub fn sequence(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
                     };
                     statements.borrow_mut().resize(statement_capacity, None)
                 }
-                (*statements.borrow_mut())[statement_count] = Some(node);
+                (*statements.borrow_mut())[statement_count] = Some(node.clone());
+                assert_eq!(
+                    statements
+                        .deref()
+                        .borrow()
+                        .get(statement_count)
+                        .as_ref()
+                        .unwrap()
+                        .as_ref()
+                        .unwrap()
+                        .as_ref()
+                        .borrow()
+                        .deref(),
+                    node.deref().borrow().deref()
+                );
                 statement_count += 1;
             }
             None => {
                 for i in 0..statement_count {
+                    // eprint!(
+                    //     "\n statement: {:#?}\n",
+                    //     statements
+                    //         .borrow_mut()
+                    //         .get(i)
+                    //         .as_ref()
+                    //         .unwrap()
+                    //         .as_ref()
+                    //         .unwrap()
+                    //         .deref()
+                    //         .borrow()
+                    // );
                     free_ast(statements.borrow_mut()[i].clone());
                 }
                 eprint!("\n oh no Sequence Node returned None\n");
