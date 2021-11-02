@@ -51,7 +51,7 @@ pub fn get_expected_path(program_path: &Path) -> Result<String, Box<dyn std::err
 pub fn make_expected(program_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let expected_path = get_expected_path(program_path)?;
     let mut expected_file = File::create(expected_path.clone())?;
-    let program = &read(program_path).unwrap();
+    let program = &read(program_path)?;
     let program_comments = from_utf8(program)?.lines();
     for line in program_comments {
         if line.starts_with("#") {
@@ -68,12 +68,9 @@ pub fn write_output(program_path: &Path) -> Result<(), Box<dyn std::error::Error
     let output = asmgen_compilation.assert().success().get_output().clone();
 
     eprint!("{}", from_utf8(&output.stderr)?);
-
-    // assert_eq!(output_name, "stage1-1337");
     let output_asm_path = get_output_asm_path(program_path)?;
 
     let mut output_asm = File::create(output_asm_path.clone())?;
-    // assert_eq!(output_asm_path, "./out/stage1-1337.s");
 
     let output_result = output_asm.write(output.stdout.as_slice())?;
     assert_eq!(output_result, output.stdout.len());
@@ -111,6 +108,7 @@ pub fn record_output(program_path: &Path) -> Result<(), Box<dyn std::error::Erro
     Ok(())
 }
 
+// https://github.com/mitsuhiko/similar/blob/main/examples/terminal-inline.rs
 pub fn show_diff(program_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let expected = &read(get_expected_path(program_path)?).unwrap();
     let actual = &read(get_output_path(program_path)?).unwrap();
