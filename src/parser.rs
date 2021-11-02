@@ -259,7 +259,6 @@ pub fn statement(state: &ParserState, end: &mut bool) -> Option<Rc<RefCell<Node>
                 drop(next);
                 restore_position(state, start);
                 *end = true;
-                eprint!("Else token, returning None\n");
                 return None;
             }
             b"END\x00" => {
