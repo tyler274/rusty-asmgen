@@ -180,9 +180,16 @@ pub fn num(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
                 Ok(value) => {
                     // the god damn null terminator really got me here
                     let val = &value[0..value.len() - 1];
-                    let num = i64::from_str_radix(val, 10).expect(
-                        "parsing into an i64 failed, check for terminator and whitespace handling",
+                    let num: i64;
+                    if val.starts_with("0x") {
+                        num = i64::from_str_radix(val.trim_start_matches("0x"), 16).expect(
+                        &format!("parsing into an i64 failed, check for terminator and whitespace handling: {:#?}", val),
                     );
+                    } else {
+                        num = i64::from_str_radix(val, 10).expect(
+                        &format!("parsing into an i64 failed, check for terminator and whitespace handling: {:#?}", val),
+                    );
+                    }
                     return Some(init_num_node(num));
                 }
                 Err(_) => {
@@ -369,7 +376,7 @@ pub fn statement(state: &ParserState, end: &mut bool) -> Option<Rc<RefCell<Node>
                 next = advance_until_separator(state);
                 match next.clone() {
                     Some(next_token) => match next_token.as_slice() {
-                        b"WHILE\x00" => {}
+                        b"END\x00" => {}
                         _ => {
                             drop(next);
                             free_ast(condition_0);
@@ -381,6 +388,25 @@ pub fn statement(state: &ParserState, end: &mut bool) -> Option<Rc<RefCell<Node>
                         drop(next);
                         free_ast(condition_0);
                         free_ast(body);
+                        return None;
+                    }
+                }
+
+                drop(next);
+                next = advance_until_separator(state);
+                match next.clone() {
+                    Some(next_token) => match next_token.as_slice() {
+                        b"WHILE\x00" => {}
+                        _ => {
+                            drop(next);
+                            free_ast(condition_0.clone());
+                            free_ast(body.clone());
+                            return None;
+                        }
+                    },
+                    None => {
+                        free_ast(condition_0.clone());
+                        free_ast(body.clone());
                         return None;
                     }
                 }
