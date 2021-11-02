@@ -1,106 +1,27 @@
 extern crate asmgen;
-use std::{cell::RefCell, fs::File, rc::Rc};
+mod common;
 
-use asmgen::ast::{free_ast, print_ast, Node};
-use asmgen::compile::compile_ast;
-use asmgen::compiler::{footer, header};
-use asmgen::parser::parse;
+use std::path::Path; // Run programs
+
+use common::run_test_process;
 
 #[test]
-fn bad_order() {
-    let ast: Option<Rc<RefCell<Node>>>;
-
-    let program = File::open("./progs/stage3-bad-order.bas").unwrap();
-
-    header();
-    ast = parse(program);
-    // file is dropped when this scope exits.
-
-    assert!(ast.is_some());
-
-    match ast.clone() {
-        None => {
-            eprintln!("Parse error");
-            // return 2;
-        }
-        Some(u_ast) => {
-            // Display the AST for debugging purposes
-            print_ast(u_ast.clone());
-            // Compile the AST into assembly instructions
-            if !compile_ast(u_ast.clone()) {
-                free_ast(ast.clone());
-                eprintln!("Compilation error\n");
-                // return 3;
-            }
-        }
-    }
-
-    free_ast(ast);
-    footer();
+fn bad_order() -> Result<(), Box<dyn std::error::Error>> {
+    let program_path = Path::new("progs/stage3-bad-order.bas");
+    run_test_process(program_path)?;
+    Ok(())
 }
 
 #[test]
-fn lots_of_ops() {
-    let ast: Option<Rc<RefCell<Node>>>;
-
-    let program = File::open("./progs/stage3-lots-of-ops.bas").unwrap();
-
-    header();
-    ast = parse(program);
-    // file is dropped when this scope exits.
-
-    assert!(ast.is_some());
-
-    match ast.clone() {
-        None => {
-            eprintln!("Parse error");
-            // return 2;
-        }
-        Some(u_ast) => {
-            // Display the AST for debugging purposes
-            print_ast(u_ast.clone());
-            // Compile the AST into assembly instructions
-            if !compile_ast(u_ast.clone()) {
-                free_ast(ast.clone());
-                eprintln!("Compilation error\n");
-                // return 3;
-            }
-        }
-    }
-
-    free_ast(ast);
-    footer();
+fn lots_of_ops() -> Result<(), Box<dyn std::error::Error>> {
+    let program_path = Path::new("progs/stage3-lots-of-ops.bas");
+    run_test_process(program_path)?;
+    Ok(())
 }
 
 #[test]
-fn overflow() {
-    let ast: Option<Rc<RefCell<Node>>>;
-
-    let program = File::open("./progs/stage3-overflow.bas").unwrap();
-
-    header();
-    ast = parse(program);
-    // file is dropped when this scope exits.
-
-    assert!(ast.is_some());
-
-    match ast.clone() {
-        None => {
-            eprintln!("Parse error");
-            // return 2;
-        }
-        Some(u_ast) => {
-            // Display the AST for debugging purposes
-            print_ast(u_ast.clone());
-            // Compile the AST into assembly instructions
-            if !compile_ast(u_ast.clone()) {
-                free_ast(ast.clone());
-                eprintln!("Compilation error\n");
-                // return 3;
-            }
-        }
-    }
-
-    free_ast(ast);
-    footer();
+fn overflow() -> Result<(), Box<dyn std::error::Error>> {
+    let program_path = Path::new("progs/stage3-overflow.bas");
+    run_test_process(program_path)?;
+    Ok(())
 }
