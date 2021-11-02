@@ -154,7 +154,7 @@ pub fn init_while_node(
             free_ast(body);
             return None;
         }
-        (Some(b), Some(c)) => {
+        (Some(c), Some(b)) => {
             let node = Rc::new(RefCell::new(Node::WhileNode {
                 body: b,
                 condition: c,
@@ -217,7 +217,7 @@ pub fn free_ast(node: Option<Rc<RefCell<Node>>>) {
 pub fn print_indent(mut indent: usize) {
     while indent > 0 {
         eprint!("\t");
-        indent = indent.wrapping_sub(1)
+        indent = indent.wrapping_sub(1);
     }
 }
 
@@ -228,14 +228,14 @@ pub fn print_ast_indented(node: Option<Rc<RefCell<Node>>>, indent: usize) {
                 eprint!("{}", value);
             }
             Node::Binary { op, left, right } => {
-                eprint!("{}(", op);
+                eprint!("{}(", std::str::from_utf8(&[*op]).unwrap());
                 print_ast_indented(Some(left.clone()), indent);
                 eprint!(", ");
                 print_ast_indented(Some(right.clone()), indent);
                 eprint!(")");
             }
             Node::Var { name } => {
-                eprint!("{}", name);
+                eprint!("{}", std::str::from_utf8(&[*name]).unwrap());
             }
             Node::Sequence {
                 statement_count,
@@ -253,7 +253,7 @@ pub fn print_ast_indented(node: Option<Rc<RefCell<Node>>>, indent: usize) {
             }
             Node::LetNode { var, value } => {
                 print_indent(indent);
-                eprint!("LET({}, ", var);
+                eprint!("LET({}, ", std::str::from_utf8(&[*var]).unwrap());
                 print_ast_indented(Some(value.clone()), indent);
                 eprint!(")\n");
             }
@@ -271,7 +271,7 @@ pub fn print_ast_indented(node: Option<Rc<RefCell<Node>>>, indent: usize) {
                     Some(e_branch) => {
                         print_indent(indent);
                         eprint!(",\n");
-                        print_ast_indented(Some(e_branch.clone()), indent);
+                        print_ast_indented(Some(e_branch.clone()), indent + 1);
                     }
                     None => {}
                 }

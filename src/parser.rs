@@ -405,6 +405,7 @@ pub fn statement(state: &ParserState, end: &mut bool) -> Option<Rc<RefCell<Node>
                         }
                     },
                     None => {
+                        drop(next);
                         free_ast(condition_0.clone());
                         free_ast(body.clone());
                         return None;
