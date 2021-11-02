@@ -5,7 +5,7 @@ members = [
 [package]
 name = "asmgen"
 authors = ["C2Rust", "Tyler Port"]
-version = "0.0.0"
+version = "0.0.1"
 publish = false
 edition = '2021'
 
@@ -21,7 +21,7 @@ edition = '2021'
 # https://rust-cli.github.io/book/tutorial/testing.html 
 # the Rust CLI working group suggests these two crates for writing tests. 
 assert_cmd = "2"
-predicates = "2"
+# predicates = "2"
 console = "0.15"
 # grep = "0.2"
 

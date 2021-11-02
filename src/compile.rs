@@ -17,8 +17,54 @@ pub fn compile_ast(_node: Rc<RefCell<Node>>) -> bool {
             print_indent(1);
             print!("mov ${:#X}, %rdi\n", value);
         }
-        Node::Binary { op, left, right } => todo!(),
-        Node::Var { name } => todo!(),
+        Node::Binary { op, left, right } => match *op {
+            b'+' => {
+                compile_ast(left.clone());
+                print_indent(1);
+                print!("push %rdi\n");
+                compile_ast(right.clone());
+                print_indent(1);
+                print!("push %rdi\n");
+                print_indent(1);
+                print!("pop %rdi\n");
+                print_indent(1);
+                print!("pop %rdx\n");
+                print_indent(1);
+                print!("addq %rdx, %rdi\n");
+            }
+            b'-' => {
+                compile_ast(left.clone());
+                print_indent(1);
+                print!("push %rdi\n");
+                compile_ast(right.clone());
+                print_indent(1);
+                print!("push %rdi\n");
+                print_indent(1);
+                print!("pop %rdx\n");
+                print_indent(1);
+                print!("pop %rdi\n");
+                print_indent(1);
+                print!("subq %rdx, %rdi\n");
+            }
+            b'*' => {
+                compile_ast(left.clone());
+                print_indent(1);
+                print!("push %rdi\n");
+                compile_ast(right.clone());
+                print_indent(1);
+                print!("push %rdi\n");
+                print_indent(1);
+                print!("pop %rdx\n");
+                print_indent(1);
+                print!("pop %rdi\n");
+                print_indent(1);
+                print!("imulq %rdx, %rdi\n");
+            }
+            _ => {
+                todo!();
+            }
+        },
+        Node::Var { name: _ } => todo!(),
         Node::Sequence {
             statement_count,
             statements,
@@ -43,13 +89,16 @@ pub fn compile_ast(_node: Rc<RefCell<Node>>) -> bool {
             print_indent(1);
             print!("call print_int\n");
         }
-        Node::LetNode { var, value } => todo!(),
+        Node::LetNode { var: _, value: _ } => todo!(),
         Node::IfNode {
-            condition,
-            if_branch,
-            else_branch,
+            condition: _,
+            if_branch: _,
+            else_branch: _,
         } => todo!(),
-        Node::WhileNode { condition, body } => todo!(),
+        Node::WhileNode {
+            condition: _,
+            body: _,
+        } => todo!(),
     }
 
     // return false;
