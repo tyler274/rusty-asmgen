@@ -12,15 +12,10 @@ pub fn print_indent(mut indent: usize) {
 fn add_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
     compile_ast(left.clone());
     print_indent(1);
-    print!("push %rdi\n");
+    print!("pushq %rdi\n");
     compile_ast(right.clone());
-    // print_indent(1);
-    // print!("push %rdi\n");
-    // // easy optimization here
-    // print_indent(1);
-    // print!("pop %rdi\n");
     print_indent(1);
-    print!("pop %rdx\n");
+    print!("popq %rdx\n");
     print_indent(1);
     print!("addq %rdx, %rdi\n");
 }
@@ -28,12 +23,12 @@ fn add_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
 fn sub_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
     compile_ast(left.clone());
     print_indent(1);
-    print!("push %rdi\n");
+    print!("pushq %rdi\n");
     compile_ast(right.clone());
     print_indent(1);
-    print!("mov %rdi, %rdx\n");
+    print!("movq %rdi, %rdx\n");
     print_indent(1);
-    print!("pop %rdi\n");
+    print!("popq %rdi\n");
     print_indent(1);
     print!("subq %rdx, %rdi\n");
 }
@@ -41,15 +36,10 @@ fn sub_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
 fn mul_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
     compile_ast(left.clone());
     print_indent(1);
-    print!("push %rdi\n");
+    print!("pushq %rdi\n");
     compile_ast(right.clone());
     print_indent(1);
-    print!("push %rdi\n");
-    // easy optimization here
-    print_indent(1);
-    print!("pop %rdx\n");
-    print_indent(1);
-    print!("pop %rdi\n");
+    print!("popq %rdx\n");
     print_indent(1);
     print!("imulq %rdx, %rdi\n");
 }
@@ -57,15 +47,10 @@ fn mul_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
 fn div_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
     compile_ast(left.clone());
     print_indent(1);
-    print!("push %rdi\n");
+    print!("pushq %rdi\n");
     compile_ast(right.clone());
     print_indent(1);
-    print!("push %rdi\n");
-    // easy optimization here
-    print_indent(1);
-    print!("pop %rdi\n");
-    print_indent(1);
-    print!("pop %rax\n");
+    print!("popq %rax\n");
 
     // cast %rax to 128bit divisor using %rdx
     print_indent(1);
@@ -74,8 +59,11 @@ fn div_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
     print_indent(1);
     print!("idivq %rdi\n");
     print_indent(1);
-    print!("mov %rax, %rdi\n");
+    print!("movq %rax, %rdi\n");
 }
+
+// 208=0xD0 bytes in the stack spill.
+// fn stack_var_map() {}
 
 pub fn compile_ast(_node: Rc<RefCell<Node>>) -> bool {
     match _node.clone().borrow().deref() {
@@ -83,7 +71,7 @@ pub fn compile_ast(_node: Rc<RefCell<Node>>) -> bool {
             // print_indent(1);
             // print!("push %rdi\n");
             print_indent(1);
-            print!("mov ${:#X}, %rdi\n", value);
+            print!("movq ${:#X}, %rdi\n", value);
         }
         Node::Binary { op, left, right } => match *op {
             b'+' => add_helper(left.clone(), right.clone()),
@@ -94,7 +82,12 @@ pub fn compile_ast(_node: Rc<RefCell<Node>>) -> bool {
                 todo!();
             }
         },
-        Node::Var { name: _ } => todo!(),
+        Node::Var { name } => {
+            // Get the offset from the stack frame base pointer using ascii A=65...
+            let n = name.to_ascii_uppercase() - 64;
+            print_indent(1);
+            print!("movq -{}(%rbp), %rdi\n", n * 8);
+        }
         Node::Sequence {
             statement_count,
             statements,
@@ -119,7 +112,12 @@ pub fn compile_ast(_node: Rc<RefCell<Node>>) -> bool {
             print_indent(1);
             print!("call print_int\n");
         }
-        Node::LetNode { var: _, value: _ } => todo!(),
+        Node::LetNode { var, value } => {
+            // Get the offset from the stack frame base pointer using ascii A=65...
+            compile_ast(value.clone());
+            let n = var.to_ascii_uppercase() - 64;
+            print!("movq %rdi, -{}(%rbp)\n", n * 8);
+        }
         Node::IfNode {
             condition: _,
             if_branch: _,

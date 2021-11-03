@@ -68,14 +68,14 @@ pub fn write_assembly(program_path: &Path) -> Result<(), Box<dyn std::error::Err
     asmgen_compilation.arg(program_path);
 
     let output = asmgen_compilation.assert().get_output().clone();
-    if !output.status.success() {
-        eprint!(
-            "Compiling AST to ASM: {} \nWritten x86 ASM: \n{}\nParsed AST: \n{}\n",
-            get_output_asm_path(program_path)?,
-            std::str::from_utf8(&output.stdout)?,
-            std::str::from_utf8(&output.stderr)?
-        );
-    }
+    // if !output.status.success() {
+    //     eprint!(
+    //         "Compiling AST to ASM: {} \nWritten x86 ASM: \n{}\nParsed AST: \n{}\n",
+    //         get_output_asm_path(program_path)?,
+    //         std::str::from_utf8(&output.stdout)?,
+    //         std::str::from_utf8(&output.stderr)?
+    //     );
+    // }
 
     let output_asm_path = get_output_asm_path(program_path)?;
 
