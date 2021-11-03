@@ -2,6 +2,7 @@ use core::fmt;
 use std::{
     fs::{read, File},
     io::Write,
+    os::unix::prelude::MetadataExt,
     path::Path,
     str::from_utf8,
 };
@@ -38,7 +39,7 @@ pub fn get_output_path(program_path: &Path) -> Result<String, Box<dyn std::error
     Ok(output_path.to_string())
 }
 
-pub fn get_output_bin_path(program_path: &Path) -> Result<String, Box<dyn std::error::Error>> {
+pub fn get_asm_bin_path(program_path: &Path) -> Result<String, Box<dyn std::error::Error>> {
     let output_bin_path = "bin/".to_owned() + &get_output_name(program_path)?;
     Ok(output_bin_path.to_string())
 }
@@ -61,47 +62,56 @@ pub fn make_expected(program_path: &Path) -> Result<(), Box<dyn std::error::Erro
     Ok(())
 }
 
-pub fn write_output(program_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+pub fn write_assembly(program_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let mut asmgen_compilation = Command::cargo_bin("asmgen")?;
     // pass the args to the command, then run, capturing its stdout and stderr outputs
     asmgen_compilation.arg(program_path);
-    let output = asmgen_compilation.assert().success().get_output().clone();
 
-    eprint!("{}", from_utf8(&output.stderr)?);
+    let output = asmgen_compilation.assert().get_output().clone();
+    if !output.status.success() {
+        eprint!(
+            "Compiling AST to ASM: {} \nWritten x86 ASM: \n{}\nParsed AST: \n{}\n",
+            get_output_asm_path(program_path)?,
+            std::str::from_utf8(&output.stdout)?,
+            std::str::from_utf8(&output.stderr)?
+        );
+    }
+
     let output_asm_path = get_output_asm_path(program_path)?;
 
     let mut output_asm = File::create(output_asm_path.clone())?;
 
     let output_result = output_asm.write(output.stdout.as_slice())?;
     assert_eq!(output_result, output.stdout.len());
+    assert_eq!(output_asm.metadata()?.size() as usize, output.stdout.len());
 
     Ok(())
 }
 
 pub fn clang_compile(program_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     // assert_eq!(output_name, "stage1-1337");
-    let output_asm_path = get_output_asm_path(program_path)?;
-    let output_bin_path = get_output_bin_path(program_path)?;
+    let asm_path = get_output_asm_path(program_path)?;
+    let asm_bin_path = get_asm_bin_path(program_path)?;
     let mut clang_asm = Command::new("clang");
     clang_asm
         .arg("-g")
         .arg("-nostartfiles")
-        .arg(output_asm_path)
+        .arg(asm_path)
         .arg("./runtime/print_int.s")
         .arg("./runtime/call_check.s")
         .arg("-o")
-        .arg(output_bin_path.clone());
+        .arg(asm_bin_path.clone());
 
     clang_asm.assert().success();
 
     Ok(())
 }
 
-pub fn record_output(program_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    let mut output_cmd = Command::new(get_output_bin_path(program_path)?);
+pub fn record_asm_bin_output(program_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let mut output_cmd = Command::new(get_asm_bin_path(program_path)?);
     eprint!(
         "running output cmd with binary path: {}\n",
-        get_output_bin_path(program_path)?
+        get_asm_bin_path(program_path)?
     );
     let output_record = output_cmd.assert().success().get_output().clone();
     let output_path = "progs/".to_owned() + &get_output_name(program_path)? + "-actual.txt";
@@ -155,9 +165,9 @@ pub fn show_diff(program_path: &Path) -> Result<(), Box<dyn std::error::Error>> 
 }
 
 pub fn run_test_process(program_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    write_output(program_path)?;
+    write_assembly(program_path)?;
     clang_compile(program_path)?;
-    record_output(program_path)?;
+    record_asm_bin_output(program_path)?;
     make_expected(program_path)?;
     show_diff(program_path)?;
     Ok(())

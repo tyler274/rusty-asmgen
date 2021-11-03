@@ -14,11 +14,11 @@ fn add_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
     print_indent(1);
     print!("push %rdi\n");
     compile_ast(right.clone());
-    print_indent(1);
-    print!("push %rdi\n");
-    // easy optimization here
-    print_indent(1);
-    print!("pop %rdi\n");
+    // print_indent(1);
+    // print!("push %rdi\n");
+    // // easy optimization here
+    // print_indent(1);
+    // print!("pop %rdi\n");
     print_indent(1);
     print!("pop %rdx\n");
     print_indent(1);
@@ -31,10 +31,7 @@ fn sub_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
     print!("push %rdi\n");
     compile_ast(right.clone());
     print_indent(1);
-    print!("push %rdi\n");
-    // easy optimization here
-    print_indent(1);
-    print!("pop %rdx\n");
+    print!("mov %rdi, %rdx\n");
     print_indent(1);
     print!("pop %rdi\n");
     print_indent(1);

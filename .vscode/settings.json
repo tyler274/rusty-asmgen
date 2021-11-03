@@ -4,5 +4,6 @@
         "compile.h": "c",
         "ast.h": "c"
     },
+    "debug.console.closeOnEnd": true,
 
 }

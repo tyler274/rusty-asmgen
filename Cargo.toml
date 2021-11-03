@@ -9,6 +9,11 @@ version = "0.0.1"
 publish = false
 edition = '2021'
 
+[profile.release]
+debug = true
+
+[profile.bench]
+debug = true
 
 # [[bin]]
 # path = "src/compiler.rs"
@@ -17,6 +22,7 @@ edition = '2021'
 [dependencies]
 # libc = "0.2"
 
+# These are only used for the testing/development environment
 [dev-dependencies]
 # https://rust-cli.github.io/book/tutorial/testing.html 
 # the Rust CLI working group suggests these two crates for writing tests. 
@@ -24,11 +30,17 @@ assert_cmd = "2"
 # predicates = "2"
 console = "0.15"
 # grep = "0.2"
+criterion = "0.3"
 
 [dev-dependencies.similar]
 version = "2"
 features = ["text", "bytes", "inline"]
 
+[[bench]]
+name = "optimizing_compiler"
+harness = false
+
+[[tests]]
 
 
 
