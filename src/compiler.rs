@@ -24,7 +24,7 @@ pub fn header() {
 pub fn footer() {
     print!("    ret\n");
 }
-pub fn main_0(argc: usize, argv: Vec<String>) -> i32 {
+pub fn compiler_entrypoint(argc: usize, argv: Vec<String>) -> i32 {
     if argc != 2 {
         usage(argv.get(0).unwrap());
     }
@@ -45,7 +45,7 @@ pub fn main_0(argc: usize, argv: Vec<String>) -> i32 {
         header();
 
         ast = parse(program);
-        // file is dropped when this scope exits.
+        // file is dropped/freed when this scope exits.
     }
 
     match ast.clone() {

@@ -99,6 +99,10 @@ pub fn clang_compile(program_path: &Path) -> Result<(), Box<dyn std::error::Erro
 
 pub fn record_output(program_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let mut output_cmd = Command::new(get_output_bin_path(program_path)?);
+    eprint!(
+        "running output cmd with binary path: {}\n",
+        get_output_bin_path(program_path)?
+    );
     let output_record = output_cmd.assert().success().get_output().clone();
     let output_path = "progs/".to_owned() + &get_output_name(program_path)? + "-actual.txt";
     let mut output_actual = File::create(output_path.clone())?;

@@ -1,7 +1,7 @@
 extern crate asmgen;
 mod common;
 
-use std::path::Path; // Run programs
+use std::path::Path;
 
 use common::run_test_process;
 

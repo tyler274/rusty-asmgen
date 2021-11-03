@@ -1,9 +1,8 @@
 extern crate asmgen;
 mod common;
 
-use std::path::Path; // Run programs
-
 use common::run_test_process;
+use std::path::Path;
 
 #[test]
 fn bad_order() -> Result<(), Box<dyn std::error::Error>> {

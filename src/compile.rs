@@ -9,6 +9,77 @@ pub fn print_indent(mut indent: usize) {
     }
 }
 
+fn add_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
+    compile_ast(left.clone());
+    print_indent(1);
+    print!("push %rdi\n");
+    compile_ast(right.clone());
+    print_indent(1);
+    print!("push %rdi\n");
+    // easy optimization here
+    print_indent(1);
+    print!("pop %rdi\n");
+    print_indent(1);
+    print!("pop %rdx\n");
+    print_indent(1);
+    print!("addq %rdx, %rdi\n");
+}
+
+fn sub_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
+    compile_ast(left.clone());
+    print_indent(1);
+    print!("push %rdi\n");
+    compile_ast(right.clone());
+    print_indent(1);
+    print!("push %rdi\n");
+    // easy optimization here
+    print_indent(1);
+    print!("pop %rdx\n");
+    print_indent(1);
+    print!("pop %rdi\n");
+    print_indent(1);
+    print!("subq %rdx, %rdi\n");
+}
+
+fn mul_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
+    compile_ast(left.clone());
+    print_indent(1);
+    print!("push %rdi\n");
+    compile_ast(right.clone());
+    print_indent(1);
+    print!("push %rdi\n");
+    // easy optimization here
+    print_indent(1);
+    print!("pop %rdx\n");
+    print_indent(1);
+    print!("pop %rdi\n");
+    print_indent(1);
+    print!("imulq %rdx, %rdi\n");
+}
+
+fn div_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
+    compile_ast(left.clone());
+    print_indent(1);
+    print!("push %rdi\n");
+    compile_ast(right.clone());
+    print_indent(1);
+    print!("push %rdi\n");
+    // easy optimization here
+    print_indent(1);
+    print!("pop %rdi\n");
+    print_indent(1);
+    print!("pop %rax\n");
+
+    // cast %rax to 128bit divisor using %rdx
+    print_indent(1);
+    print!("cqto\n");
+
+    print_indent(1);
+    print!("idivq %rdi\n");
+    print_indent(1);
+    print!("mov %rax, %rdi\n");
+}
+
 pub fn compile_ast(_node: Rc<RefCell<Node>>) -> bool {
     match _node.clone().borrow().deref() {
         Node::Num { value } => {
@@ -18,48 +89,10 @@ pub fn compile_ast(_node: Rc<RefCell<Node>>) -> bool {
             print!("mov ${:#X}, %rdi\n", value);
         }
         Node::Binary { op, left, right } => match *op {
-            b'+' => {
-                compile_ast(left.clone());
-                print_indent(1);
-                print!("push %rdi\n");
-                compile_ast(right.clone());
-                print_indent(1);
-                print!("push %rdi\n");
-                print_indent(1);
-                print!("pop %rdi\n");
-                print_indent(1);
-                print!("pop %rdx\n");
-                print_indent(1);
-                print!("addq %rdx, %rdi\n");
-            }
-            b'-' => {
-                compile_ast(left.clone());
-                print_indent(1);
-                print!("push %rdi\n");
-                compile_ast(right.clone());
-                print_indent(1);
-                print!("push %rdi\n");
-                print_indent(1);
-                print!("pop %rdx\n");
-                print_indent(1);
-                print!("pop %rdi\n");
-                print_indent(1);
-                print!("subq %rdx, %rdi\n");
-            }
-            b'*' => {
-                compile_ast(left.clone());
-                print_indent(1);
-                print!("push %rdi\n");
-                compile_ast(right.clone());
-                print_indent(1);
-                print!("push %rdi\n");
-                print_indent(1);
-                print!("pop %rdx\n");
-                print_indent(1);
-                print!("pop %rdi\n");
-                print_indent(1);
-                print!("imulq %rdx, %rdi\n");
-            }
+            b'+' => add_helper(left.clone(), right.clone()),
+            b'-' => sub_helper(left.clone(), right.clone()),
+            b'*' => mul_helper(left.clone(), right.clone()),
+            b'/' => div_helper(left.clone(), right.clone()),
             _ => {
                 todo!();
             }
