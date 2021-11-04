@@ -1,11 +1,11 @@
-use std::{cell::RefCell, fs::File, rc::Rc};
+use std::fs::File;
 
-use crate::ast::{free_ast, print_ast, Node};
+use crate::ast::{print_ast, Node};
 use crate::compile::compile_ast;
 use crate::parser::parse;
 
-pub fn usage(program: &str) {
-    eprint!("USAGE: {} <program file>\n", program);
+fn usage(program: &str) {
+    eprintln!("USAGE: {} <program file>", program);
     std::process::exit(1)
 }
 
@@ -14,7 +14,7 @@ pub fn usage(program: &str) {
  * The assembly code implementing the TeenyBASIC statements
  * goes between the header and the footer.
  */
-pub fn header() {
+fn header() {
     print!(
         r#"# The code section of the assembly file
 .text
@@ -36,7 +36,7 @@ basic_main:
  * The assembly code implementing the TeenyBASIC statements
  * goes between the header and the footer.
  */
-pub fn footer() {
+fn footer() {
     print!(
         r#"
     # Free the stack space allocated in the header
@@ -52,7 +52,7 @@ pub fn compiler_entrypoint(argc: usize, argv: Vec<String>) -> i32 {
     if argc != 2 {
         usage(argv.get(0).unwrap());
     }
-    let ast: Option<Rc<RefCell<Node>>>;
+    let ast: Option<Node>;
     {
         let program = File::open(argv.get(1).unwrap()).unwrap();
         match program.metadata() {
@@ -72,7 +72,7 @@ pub fn compiler_entrypoint(argc: usize, argv: Vec<String>) -> i32 {
         // file is dropped/freed when this scope exits.
     }
 
-    match ast.clone() {
+    match ast {
         None => {
             eprintln!("Parse error");
             return 2;
@@ -82,15 +82,15 @@ pub fn compiler_entrypoint(argc: usize, argv: Vec<String>) -> i32 {
             print_ast(u_ast.clone());
             let mut program_counter: usize = 0;
             // Compile the AST into assembly instructions
-            if !compile_ast(u_ast.clone(), &mut program_counter) {
-                free_ast(ast);
-                eprint!("Compilation error\n");
+            if !compile_ast(u_ast, &mut program_counter) {
+                // free_ast(ast);
+                eprintln!("Compilation error");
                 return 3;
             }
         }
     }
 
-    free_ast(ast);
+    // free_ast(ast);
     footer();
-    return 0;
+    0
 }

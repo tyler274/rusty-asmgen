@@ -40,7 +40,6 @@ features = ["text", "bytes", "inline"]
 name = "optimizing_compiler"
 harness = false
 
-[[tests]]
 
 
 
