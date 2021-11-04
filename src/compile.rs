@@ -9,127 +9,244 @@ pub fn print_indent(mut indent: usize) {
     }
 }
 
-fn add_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
-    compile_ast(left.clone());
+fn add_helper(
+    left: Rc<RefCell<Node>>,
+    right: Rc<RefCell<Node>>,
+    program_counter: &mut usize,
+) -> bool {
+    callee_reg_save();
+    binary_ops_reg_helper(left.clone(), right.clone(), program_counter);
     print_indent(1);
-    print!("pushq %rdi\n");
-    compile_ast(right.clone());
+    print!("addq %r13, %r12\n");
     print_indent(1);
-    print!("popq %rdx\n");
-    print_indent(1);
-    print!("addq %rdx, %rdi\n");
+    print!("movq %r12, %rdi\n");
+    callee_reg_restore();
+    true
 }
 
-fn sub_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
-    compile_ast(left.clone());
+fn sub_helper(
+    left: Rc<RefCell<Node>>,
+    right: Rc<RefCell<Node>>,
+    program_counter: &mut usize,
+) -> bool {
+    callee_reg_save();
+    binary_ops_reg_helper(left.clone(), right.clone(), program_counter);
     print_indent(1);
-    print!("pushq %rdi\n");
-    compile_ast(right.clone());
+    print!("subq %rdi, %r12\n");
     print_indent(1);
-    print!("movq %rdi, %rdx\n");
-    print_indent(1);
-    print!("popq %rdi\n");
-    print_indent(1);
-    print!("subq %rdx, %rdi\n");
+    print!("movq %r12, %rdi\n");
+    callee_reg_restore();
+    true
 }
 
-fn mul_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
-    compile_ast(left.clone());
+fn mul_helper(
+    left: Rc<RefCell<Node>>,
+    right: Rc<RefCell<Node>>,
+    program_counter: &mut usize,
+) -> bool {
+    callee_reg_save();
+    binary_ops_reg_helper(left.clone(), right.clone(), program_counter);
     print_indent(1);
-    print!("pushq %rdi\n");
-    compile_ast(right.clone());
+    print!("imulq %rdi, %r12\n");
     print_indent(1);
-    print!("popq %rdx\n");
-    print_indent(1);
-    print!("imulq %rdx, %rdi\n");
+    print!("movq %r12, %rdi\n");
+    callee_reg_restore();
+    true
 }
 
-fn div_helper(left: Rc<RefCell<Node>>, right: Rc<RefCell<Node>>) {
-    compile_ast(left.clone());
+fn div_helper(
+    left: Rc<RefCell<Node>>,
+    right: Rc<RefCell<Node>>,
+    program_counter: &mut usize,
+) -> bool {
+    callee_reg_save();
+    binary_ops_reg_helper(left.clone(), right.clone(), program_counter);
     print_indent(1);
-    print!("pushq %rdi\n");
-    compile_ast(right.clone());
-    print_indent(1);
-    print!("popq %rax\n");
+    print!("movq %r12, %rax\n");
 
     // cast %rax to 128bit divisor using %rdx
     print_indent(1);
     print!("cqto\n");
 
     print_indent(1);
-    print!("idivq %rdi\n");
+    print!("idivq %r13\n");
     print_indent(1);
     print!("movq %rax, %rdi\n");
+
+    callee_reg_restore();
+    true
 }
 
-// 208=0xD0 bytes in the stack spill.
-// fn stack_var_map() {}
+fn callee_reg_save() {
+    print_indent(1);
+    print!("pushq %r12\n");
+    print_indent(1);
+    print!("pushq %r13\n");
+}
 
-pub fn compile_ast(_node: Rc<RefCell<Node>>) -> bool {
-    match _node.clone().borrow().deref() {
-        Node::Num { value } => {
-            // print_indent(1);
-            // print!("push %rdi\n");
-            print_indent(1);
-            print!("movq ${:#X}, %rdi\n", value);
-        }
+fn callee_reg_restore() {
+    // restore our calle-saved registers that will survive being clobered
+    print_indent(1);
+    print!("popq %r13\n");
+    print_indent(1);
+    print!("popq %r12\n");
+}
+
+fn binary_ops_reg_helper(
+    left: Rc<RefCell<Node>>,
+    right: Rc<RefCell<Node>>,
+    program_counter: &mut usize,
+) {
+    // evaluate our left hand side
+    *program_counter += 1;
+    compile_ast(left.clone(), program_counter);
+
+    print_indent(1);
+    print!("movq %rdi, %r12\n");
+
+    // evaluate our right hand side
+    *program_counter += 1;
+    compile_ast(right.clone(), program_counter);
+
+    print_indent(1);
+    print!("movq %rdi, %r13\n");
+}
+
+fn num_helper(value: i64) -> bool {
+    print_indent(1);
+    print!("movq ${:#X}, %rdi\n", value);
+    true
+}
+
+fn var_helper(name: u8) -> bool {
+    // Get the offset from the stack frame base pointer using ascii A=65...
+    // We have to 1 index here or its a caller-callee convention violation.
+    let n = name.to_ascii_uppercase() - 64;
+    print_indent(1);
+    print!("movq -{}(%rbp), %rdi\n", n * 8);
+    true
+}
+
+fn sequence_helper(
+    statement_count: usize,
+    statements: Rc<RefCell<Vec<Option<Rc<RefCell<Node>>>>>>,
+    program_counter: &mut usize,
+) -> bool {
+    let mut statement_counter: usize = 0;
+    while statement_counter < statement_count {
+        *program_counter += 1;
+        compile_ast(
+            statements
+                .deref()
+                .borrow()
+                .get(statement_counter)
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .clone(),
+            program_counter,
+        );
+        statement_counter += 1;
+    }
+    true
+}
+
+fn print_helper(expr: Rc<RefCell<Node>>, program_counter: &mut usize) -> bool {
+    *program_counter += 1;
+    compile_ast(expr.clone(), program_counter);
+    print_indent(1);
+    print!("call print_int\n");
+    true
+}
+
+fn let_helper(var: u8, value: Rc<RefCell<Node>>, program_counter: &mut usize) -> bool {
+    // Get the offset from the stack frame base pointer using ascii A=65...
+    // We have to 1 index here or its a caller-callee convention violation.
+    *program_counter += 1;
+    compile_ast(value.clone(), program_counter);
+    let n = var.to_ascii_uppercase() - 64;
+    print_indent(1);
+    print!("movq %rdi, -{}(%rbp)\n", n * 8);
+    true
+}
+
+fn equality_helper(
+    left: Rc<RefCell<Node>>,
+    right: Rc<RefCell<Node>>,
+    program_counter: &mut usize,
+) -> bool {
+    callee_reg_save();
+    binary_ops_reg_helper(left.clone(), right.clone(), program_counter);
+    callee_reg_restore();
+    todo!();
+    true
+}
+
+fn less_than_helper(
+    left: Rc<RefCell<Node>>,
+    right: Rc<RefCell<Node>>,
+    program_counter: &mut usize,
+) -> bool {
+    callee_reg_save();
+    binary_ops_reg_helper(left.clone(), right.clone(), program_counter);
+    callee_reg_restore();
+    todo!();
+    true
+}
+
+fn greater_than_helper(
+    left: Rc<RefCell<Node>>,
+    right: Rc<RefCell<Node>>,
+    program_counter: &mut usize,
+) -> bool {
+    callee_reg_save();
+    binary_ops_reg_helper(left.clone(), right.clone(), program_counter);
+    callee_reg_restore();
+    todo!();
+    true
+}
+
+pub fn compile_ast(node: Rc<RefCell<Node>>, program_counter: &mut usize) -> bool {
+    return match node.clone().borrow().deref() {
+        Node::Num { value } => num_helper(*value),
         Node::Binary { op, left, right } => match *op {
-            b'+' => add_helper(left.clone(), right.clone()),
-            b'-' => sub_helper(left.clone(), right.clone()),
-            b'*' => mul_helper(left.clone(), right.clone()),
-            b'/' => div_helper(left.clone(), right.clone()),
+            b'+' => add_helper(left.clone(), right.clone(), program_counter),
+            b'-' => sub_helper(left.clone(), right.clone(), program_counter),
+            b'*' => mul_helper(left.clone(), right.clone(), program_counter),
+            b'/' => div_helper(left.clone(), right.clone(), program_counter),
+            b'=' => equality_helper(left.clone(), right.clone(), program_counter),
+            b'<' => less_than_helper(left.clone(), right.clone(), program_counter),
+            b'>' => greater_than_helper(left.clone(), right.clone(), program_counter),
             _ => {
                 todo!();
             }
         },
-        Node::Var { name } => {
-            // Get the offset from the stack frame base pointer using ascii A=65...
-            let n = name.to_ascii_uppercase() - 64;
-            print_indent(1);
-            print!("movq -{}(%rbp), %rdi\n", n * 8);
-        }
+        Node::Var { name } => var_helper(*name),
         Node::Sequence {
             statement_count,
             statements,
-        } => {
-            let mut program_counter: usize = 0;
-            while program_counter < *statement_count {
-                compile_ast(
-                    statements
-                        .deref()
-                        .borrow()
-                        .get(program_counter)
-                        .unwrap()
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
-                );
-                program_counter += 1;
-            }
-        }
-        Node::PrintNode { expr } => {
-            compile_ast(expr.clone());
-            print_indent(1);
-            print!("call print_int\n");
-        }
-        Node::LetNode { var, value } => {
-            // Get the offset from the stack frame base pointer using ascii A=65...
-            compile_ast(value.clone());
-            let n = var.to_ascii_uppercase() - 64;
-            print!("movq %rdi, -{}(%rbp)\n", n * 8);
-        }
+        } => sequence_helper(*statement_count, statements.clone(), program_counter),
+        Node::PrintNode { expr } => print_helper(expr.clone(), program_counter),
+        Node::LetNode { var, value } => let_helper(*var, value.clone(), program_counter),
         Node::IfNode {
-            condition: _,
-            if_branch: _,
-            else_branch: _,
-        } => todo!(),
+            condition,
+            if_branch,
+            else_branch,
+        } => {
+            // structure of jumps is different if we have an else or not, so match on that
+            // first to help setup that structure.
+            match else_branch {
+                Some(e_b) => {}
+                None => {
+                    // print_indent(1);
+                    // print!("movq ");
+                }
+            }
+            return false;
+        }
         Node::WhileNode {
             condition: _,
             body: _,
         } => todo!(),
-    }
-
-    // return false;
-    true
-    // for now, every statement causes a compilation failure
+    };
 }

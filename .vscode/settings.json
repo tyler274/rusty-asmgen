@@ -5,5 +5,10 @@
         "ast.h": "c"
     },
     "debug.console.closeOnEnd": true,
-
+    "lldb.launch.sourceLanguages": [
+        "rust"
+    ],
+    "lldb.launch.sourceMap": {
+        "/rustc/59eed8a2aac0230a8b53e89d4e99d55912ba6b35/": "/home/tport/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/"
+    },
 }

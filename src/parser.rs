@@ -15,35 +15,36 @@ pub struct ParserState {
     pub stream: Rc<RefCell<File>>,
 }
 
-pub type CharPredicate = Option<fn(_: u8) -> bool>;
+type CharPredicate = Option<fn(_: u8) -> bool>;
 
-pub static MAX_KEYWORD_LENGTH: usize = 100;
-pub static DEFAULT_STEP: i64 = 1;
+static MAX_KEYWORD_LENGTH: usize = 100;
+// static DEFAULT_STEP: i64 = 1;
 
-pub fn is_variable_name(c: u8) -> bool {
+fn is_variable_name(c: u8) -> bool {
     return c.is_ascii_uppercase();
 }
 
-pub fn is_open_paren(c: u8) -> bool {
+fn is_open_paren(c: u8) -> bool {
     return c == b'(';
 }
 
-pub fn is_close_paren(c: u8) -> bool {
+fn is_close_paren(c: u8) -> bool {
     return c == b')';
 }
-pub fn is_factor_op(c: u8) -> bool {
+
+fn is_factor_op(c: u8) -> bool {
     return c == b'*' || c == b'/';
 }
 
-pub fn is_term_op(c: u8) -> bool {
+fn is_term_op(c: u8) -> bool {
     return c == b'+' || c == b'-';
 }
 
-pub fn is_comparison_op(c: u8) -> bool {
+fn is_comparison_op(c: u8) -> bool {
     return c == b'<' || c == b'=' || c == b'>';
 }
 
-pub fn is_operator(c: u8) -> bool {
+fn is_operator(c: u8) -> bool {
     return is_open_paren(c)
         || is_close_paren(c)
         || is_factor_op(c)
@@ -51,30 +52,30 @@ pub fn is_operator(c: u8) -> bool {
         || is_comparison_op(c);
 }
 
-pub fn is_comment_start(c: u8) -> bool {
+fn is_comment_start(c: u8) -> bool {
     return c == b'#';
 }
 
-pub fn save_position(state: &ParserState) -> u64 {
+fn save_position(state: &ParserState) -> u64 {
     let mut bor_reader = &*(*state.stream).borrow();
     bor_reader.seek(SeekFrom::Current(0)).unwrap()
 }
 
-pub fn restore_position(state: &ParserState, position: u64) {
+fn restore_position(state: &ParserState, position: u64) {
     let mut bor_reader = &*(*state.stream).borrow();
     bor_reader.seek(SeekFrom::Start(position)).unwrap();
     // fseek((*state).stream, position as libc::c_long, 0 as libc::c_int);
 }
 
-pub fn rewind_one(state: &ParserState) {
+fn rewind_one(state: &ParserState) {
     let mut bor_reader = &*(*state.stream).borrow();
     bor_reader.seek(SeekFrom::Current(-1)).unwrap();
 }
+
 /*
  * Advances the provided state to the next token.
  */
-
-pub fn advance(state: &ParserState) -> u8 {
+fn advance(state: &ParserState) -> u8 {
     // let bor_reader = &*(*state.stream).borrow();
     let bor_reader = &*(state.stream.deref()).borrow();
     loop {
@@ -90,7 +91,7 @@ pub fn advance(state: &ParserState) -> u8 {
     }
 }
 
-pub fn try_advance(state: &ParserState, predicate: CharPredicate) -> u8 {
+fn try_advance(state: &ParserState, predicate: CharPredicate) -> u8 {
     let next: u8 = advance(state);
     if next != b'\0' && !predicate.expect("null function pointer")(next) {
         rewind_one(state);
@@ -99,7 +100,7 @@ pub fn try_advance(state: &ParserState, predicate: CharPredicate) -> u8 {
     return next;
 }
 
-pub fn advance_until_separator(state: &ParserState) -> Option<Vec<u8>> {
+fn advance_until_separator(state: &ParserState) -> Option<Vec<u8>> {
     let mut result = Vec::with_capacity(MAX_KEYWORD_LENGTH + 1);
     assert!(result.capacity() == MAX_KEYWORD_LENGTH + 1);
 
@@ -150,7 +151,7 @@ pub fn advance_until_separator(state: &ParserState) -> Option<Vec<u8>> {
     return Some(result);
 }
 
-pub fn at_end(state: &ParserState) -> bool {
+fn at_end(state: &ParserState) -> bool {
     if advance(state) != b'\0' {
         rewind_one(state);
         return false;
@@ -158,7 +159,7 @@ pub fn at_end(state: &ParserState) -> bool {
     return true;
 }
 
-pub fn skip_line(state: &ParserState) {
+fn skip_line(state: &ParserState) {
     let bor_reader = &*(*state.stream).borrow();
     // let mut reader = bor_reader.take(1);
     loop {
@@ -171,7 +172,7 @@ pub fn skip_line(state: &ParserState) {
     }
 }
 
-pub fn num(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
+fn num(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     let num_string = advance_until_separator(state);
     match num_string {
         Some(n_string) => {
@@ -202,7 +203,7 @@ pub fn num(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     }
 }
 
-pub fn factor(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
+fn factor(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     if try_advance(state, Some(is_open_paren as fn(_: u8) -> bool)) != b'\0' {
         let node = expression(state);
         if try_advance(state, Some(is_close_paren as fn(_: u8) -> bool)) == b'\0' {
@@ -217,7 +218,7 @@ pub fn factor(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     return num(state);
 }
 
-pub fn term(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
+fn term(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     let mut result = factor(state);
     loop {
         let next = try_advance(state, Some(is_factor_op as fn(_: u8) -> bool));
@@ -229,7 +230,7 @@ pub fn term(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     return result;
 }
 
-pub fn expression(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
+fn expression(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     let mut result = term(state);
     loop {
         let next: u8 = try_advance(state, Some(is_term_op as fn(_: u8) -> bool));
@@ -241,7 +242,7 @@ pub fn expression(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     return result;
 }
 
-pub fn comparison(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
+fn comparison(state: &ParserState) -> Option<Rc<RefCell<Node>>> {
     let left = expression(state);
     let op: u8 = try_advance(state, Some(is_comparison_op as fn(_: u8) -> bool));
     return init_binary_node(op, left, expression(state));

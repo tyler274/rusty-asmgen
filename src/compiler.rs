@@ -80,8 +80,9 @@ pub fn compiler_entrypoint(argc: usize, argv: Vec<String>) -> i32 {
         Some(u_ast) => {
             // Display the AST for debugging purposes
             print_ast(u_ast.clone());
+            let mut program_counter: usize = 0;
             // Compile the AST into assembly instructions
-            if !compile_ast(u_ast.clone()) {
+            if !compile_ast(u_ast.clone(), &mut program_counter) {
                 free_ast(ast);
                 eprint!("Compilation error\n");
                 return 3;
