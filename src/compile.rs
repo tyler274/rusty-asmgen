@@ -78,14 +78,14 @@ fn callee_reg_restore() {
 
 fn binary_ops_reg_helper(left: Node, right: Node, program_counter: &mut usize) {
     // evaluate our left hand side
-    *program_counter += 1;
+    // *program_counter += 1;
     compile_ast(left, program_counter);
 
     print_indent(1);
     println!("movq %rdi, %r12");
 
     // evaluate our right hand side
-    *program_counter += 1;
+    // *program_counter += 1;
     compile_ast(right, program_counter);
 
     print_indent(1);
@@ -114,7 +114,7 @@ fn sequence_helper(
 ) -> bool {
     let mut statement_counter: usize = 0;
     while statement_counter < statement_count {
-        *program_counter += 1;
+        // *program_counter += 1;
         compile_ast(
             statements
                 .deref()
@@ -132,7 +132,7 @@ fn sequence_helper(
 }
 
 fn print_helper(expr: Node, program_counter: &mut usize) -> bool {
-    *program_counter += 1;
+    // *program_counter += 1;
     compile_ast(expr, program_counter);
     print_indent(1);
     println!("call print_int");
@@ -142,7 +142,7 @@ fn print_helper(expr: Node, program_counter: &mut usize) -> bool {
 fn let_helper(var: u8, value: Node, program_counter: &mut usize) -> bool {
     // Get the offset from the stack frame base pointer using ascii A=65...
     // We have to 1 index here or its a caller-callee convention violation.
-    *program_counter += 1;
+    // *program_counter += 1;
     compile_ast(value, program_counter);
     let n = var.to_ascii_uppercase() - 64;
     print_indent(1);
@@ -206,7 +206,7 @@ fn if_helper(
     let saved_pc = *program_counter;
     compile_ast(condition, program_counter);
 
-    *program_counter += 1;
+    // *program_counter += 1;
     compile_ast(if_branch, program_counter);
 
     // structure of jumps is different if we have an else or not, so match on that
