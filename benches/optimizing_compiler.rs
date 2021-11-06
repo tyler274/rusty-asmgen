@@ -49,26 +49,26 @@ pub fn bench_stage5(c: &mut Criterion) {
     );
 }
 
-pub fn bench_stage6(_c: &mut Criterion) {
-    // let program_path = Path::new("progs/stage7-loops-of-ops.bas");
-    // write_assembly(program_path).ok();
-    // clang_compile(program_path).ok();
-    // let mut group = c.benchmark_group("stage7");
-    // group.sampling_mode(SamplingMode::Flat);
-    // group.bench_function("loops_of_ops execution time", |b| {
-    //     b.iter(|| record_asm_bin_output(program_path).ok())
-    // });
+pub fn bench_stage6(c: &mut Criterion) {
+    let program_path = Path::new("progs/stage6-nested.bas");
+    write_assembly(program_path).ok();
+    clang_compile(program_path).ok();
+    let mut group = c.benchmark_group("stage6");
+    group.sampling_mode(SamplingMode::Flat).sample_size(1000);
+    group.bench_function("loops_of_ops execution time", |b| {
+        b.iter(|| record_asm_bin_output(program_path).ok())
+    });
 }
 
-pub fn bench_stage7(_c: &mut Criterion) {
-    // let program_path = Path::new("progs/stage7-loops-of-ops.bas");
-    // write_assembly(program_path).ok();
-    // clang_compile(program_path).ok();
-    // let mut group = c.benchmark_group("stage7");
-    // group.sampling_mode(SamplingMode::Flat);
-    // group.bench_function("loops_of_ops execution time", |b| {
-    //     b.iter(|| record_asm_bin_output(program_path).ok())
-    // });
+pub fn bench_stage7(c: &mut Criterion) {
+    let program_path = Path::new("progs/stage7-loops-of-ops.bas");
+    write_assembly(program_path).ok();
+    clang_compile(program_path).ok();
+    let mut group = c.benchmark_group("stage7");
+    group.sampling_mode(SamplingMode::Flat).sample_size(1000);
+    group.bench_function("loops_of_ops execution time", |b| {
+        b.iter(|| record_asm_bin_output(program_path).ok())
+    });
 }
 
 criterion_group!(

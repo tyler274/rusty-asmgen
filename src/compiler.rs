@@ -1,7 +1,7 @@
 use std::fs::File;
 
 use crate::ast::{print_ast, Node};
-use crate::compile::compile_ast;
+use crate::compile::{compile_ast, optimize_ast};
 use crate::parser::parse;
 
 fn usage(program: &str) {
@@ -23,7 +23,6 @@ basic_main:
     # Save these callee-saved registers before we store the stack 
     pushq %rbp
     movq %rsp, %rbp
-
 
     # Allocate 208 bytes on the stack
     subq $0xD0, %rsp
@@ -68,7 +67,6 @@ pub fn compiler_entrypoint(argc: usize, argv: Vec<String>) -> i32 {
                 eprintln!("Error: {}", e);
             }
         }
-        header();
 
         ast = parse(program);
         // file is dropped/freed when this scope exits.
@@ -79,9 +77,12 @@ pub fn compiler_entrypoint(argc: usize, argv: Vec<String>) -> i32 {
             eprintln!("Parse error");
             return 2;
         }
-        Some(u_ast) => {
+        Some(mut u_ast) => {
             // Display the AST for debugging purposes
             print_ast(u_ast.clone());
+            header();
+            // Optimize the AST
+            u_ast = optimize_ast(u_ast);
             let mut program_counter: usize = 0;
             // Compile the AST into assembly instructions
             if !compile_ast(u_ast, &mut program_counter) {
@@ -89,10 +90,11 @@ pub fn compiler_entrypoint(argc: usize, argv: Vec<String>) -> i32 {
                 eprintln!("Compilation error");
                 return 3;
             }
+            footer();
         }
     }
 
     // free_ast(ast);
-    footer();
+
     0
 }

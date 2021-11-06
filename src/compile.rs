@@ -1,6 +1,6 @@
-use std::ops::Deref;
+use std::{cell::RefCell, ops::Deref, rc::Rc};
 
-use crate::ast::{Node, NodeEnum, NodeVec};
+use crate::ast::{init_let_node, init_sequence_node, Node, NodeEnum, NodeVec};
 
 pub fn print_indent(mut indent: usize) {
     while indent > 0 {
@@ -13,9 +13,9 @@ fn add_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
     callee_reg_save();
     binary_ops_reg_helper(left, right, program_counter);
     print_indent(1);
-    println!("addq %r13, %r12");
-    print_indent(1);
-    println!("movq %r12, %rdi");
+    println!("addq %r12, %rdi");
+    // print_indent(1);
+    // println!("movq %r12, %rdi");
     callee_reg_restore();
     true
 }
@@ -33,11 +33,34 @@ fn sub_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
 
 fn mul_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
     callee_reg_save();
-    binary_ops_reg_helper(left, right, program_counter);
+    binary_ops_reg_helper(left.clone(), right.clone(), program_counter);
     print_indent(1);
-    println!("imulq %rdi, %r12");
-    print_indent(1);
-    println!("movq %r12, %rdi");
+    // match (left.borrow().deref(), right.borrow().deref()) {
+    //     (NodeEnum::Num { value }, _) => {
+    //         if *value % 2 == 0 && (63 - value.leading_zeros() < 63) {
+    //             println!("shlq ${}, %rdi", 63 - value.leading_zeros());
+    //         } else {
+    //             println!("imulq %r12, %rdi");
+    //         }
+    //     }
+    //     // (_, NodeEnum::Num { value }) => {
+    //     //     if *value % 2 == 0 && (63 - value.abs().leading_zeros() < 64) {
+    //     //         println!("shlq ${}, %r12", 63 - value.leading_zeros());
+
+    //     //         print_indent(1);
+    //     //         println!("movq %r12, %rdi");
+    //     //     } else {
+    //     //         println!("imulq %r12, %rdi");
+    //     //     }
+    //     // }
+    //     (_, _) => {
+    //         println!("imulq %r12, %rdi");
+    //     }
+    // };
+
+    // No strength reduction
+    println!("imulq %r12, %rdi");
+
     callee_reg_restore();
     true
 }
@@ -282,5 +305,124 @@ pub fn compile_ast(node: Node, program_counter: &mut usize) -> bool {
         NodeEnum::WhileNode { condition, body } => {
             while_helper(condition.clone(), body.clone(), program_counter)
         }
+    };
+}
+
+pub fn optimize_ast(node: Node) -> Node {
+    return match node.borrow().deref() {
+        NodeEnum::Num { .. } => node.clone(),
+        NodeEnum::Binary { op, left, right } => match *op {
+            b'+' => match (
+                (optimize_ast(left.clone())).borrow().deref(),
+                (optimize_ast(right.clone())).borrow().deref(),
+            ) {
+                (NodeEnum::Num { value: value_l }, NodeEnum::Num { value: value_r }) => {
+                    Rc::new(RefCell::new(NodeEnum::Num {
+                        value: value_l.wrapping_add(*value_r),
+                    }))
+                }
+                (_, _) => node.clone(),
+            },
+            b'-' => match (
+                (optimize_ast(left.clone())).borrow().deref(),
+                (optimize_ast(right.clone())).borrow().deref(),
+            ) {
+                (NodeEnum::Num { value: value_l }, NodeEnum::Num { value: value_r }) => {
+                    Rc::new(RefCell::new(NodeEnum::Num {
+                        value: value_l.wrapping_sub(*value_r),
+                    }))
+                }
+                (_, _) => node.clone(),
+            },
+            b'*' => match (
+                (optimize_ast(left.clone())).borrow().deref(),
+                (optimize_ast(right.clone())).borrow().deref(),
+            ) {
+                (NodeEnum::Num { value: value_l }, NodeEnum::Num { value: value_r }) => {
+                    Rc::new(RefCell::new(NodeEnum::Num {
+                        value: value_l.wrapping_mul(*value_r),
+                    }))
+                }
+                (_, _) => node.clone(),
+            },
+            b'/' => match (
+                (optimize_ast(left.clone())).borrow().deref(),
+                (optimize_ast(right.clone())).borrow().deref(),
+            ) {
+                (NodeEnum::Num { value: value_l }, NodeEnum::Num { value: value_r }) => {
+                    Rc::new(RefCell::new(NodeEnum::Num {
+                        value: value_l.wrapping_div(*value_r),
+                    }))
+                }
+                (_, _) => node.clone(),
+            },
+            b'=' => Rc::new(RefCell::new(NodeEnum::Binary {
+                op: *op,
+                left: optimize_ast(left.clone()),
+                right: optimize_ast(right.clone()),
+            })),
+            b'<' => Rc::new(RefCell::new(NodeEnum::Binary {
+                op: *op,
+                left: optimize_ast(left.clone()),
+                right: optimize_ast(right.clone()),
+            })),
+            b'>' => Rc::new(RefCell::new(NodeEnum::Binary {
+                op: *op,
+                left: optimize_ast(left.clone()),
+                right: optimize_ast(right.clone()),
+            })),
+            _ => {
+                todo!();
+            }
+        },
+        NodeEnum::Var { .. } => node.clone(),
+        NodeEnum::Sequence {
+            statement_count,
+            statements,
+        } => init_sequence_node(
+            *statement_count,
+            Rc::new(RefCell::new(
+                statements
+                    .deref()
+                    .borrow_mut()
+                    .deref()
+                    .into_iter()
+                    .map(|s| {
+                        if s.is_none() {
+                            None
+                        } else {
+                            Some(optimize_ast(s.as_ref().unwrap().clone()))
+                        }
+                    })
+                    .collect(),
+            )),
+        )
+        .unwrap(),
+        NodeEnum::PrintNode { expr } => Rc::new(RefCell::new(NodeEnum::PrintNode {
+            expr: optimize_ast(expr.clone()),
+        })),
+        NodeEnum::LetNode { var, value } => {
+            init_let_node(*var, Some(optimize_ast(value.clone()))).unwrap()
+        }
+        NodeEnum::IfNode {
+            condition,
+            if_branch,
+            else_branch,
+        } => match else_branch {
+            Some(e_b) => Rc::new(RefCell::new(NodeEnum::IfNode {
+                condition: optimize_ast(condition.clone()),
+                if_branch: optimize_ast(if_branch.clone()),
+                else_branch: Some(optimize_ast(e_b.clone())),
+            })),
+            None => Rc::new(RefCell::new(NodeEnum::IfNode {
+                condition: optimize_ast(condition.clone()),
+                if_branch: optimize_ast(if_branch.clone()),
+                else_branch: None,
+            })),
+        },
+        NodeEnum::WhileNode { condition, body } => Rc::new(RefCell::new(NodeEnum::WhileNode {
+            condition: optimize_ast(condition.clone()),
+            body: optimize_ast(body.clone()),
+        })),
     };
 }
