@@ -24,6 +24,7 @@ basic_main:
     pushq %rbp
     movq %rsp, %rbp
 
+
     # Allocate 208 bytes on the stack
     subq $0xD0, %rsp
     # The main() function
@@ -39,6 +40,7 @@ basic_main:
 fn footer() {
     print!(
         r#"
+
     # Free the stack space allocated in the header
     leave
 

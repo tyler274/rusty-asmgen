@@ -1,19 +1,6 @@
-use core::fmt;
 use std::{fs::File, io::Write, os::unix::prelude::MetadataExt, path::Path};
 
 use assert_cmd::Command;
-
-// https://github.com/mitsuhiko/similar/blob/main/examples/terminal-inline.rs
-pub struct Line(pub Option<usize>);
-
-impl fmt::Display for Line {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.0 {
-            None => write!(f, "    "),
-            Some(idx) => write!(f, "{:<4}", idx + 1),
-        }
-    }
-}
 
 pub fn get_output_name(program_path: &Path) -> Result<String, Box<dyn std::error::Error>> {
     let output_name = program_path.file_stem().unwrap().to_str().unwrap();
@@ -39,7 +26,7 @@ pub fn write_assembly(program_path: &Path) -> Result<(), Box<dyn std::error::Err
     let output = asmgen_compilation.assert().get_output().clone();
     if !output.status.success() {
         eprint!(
-            "Compiling AST to ASM: {} \nWritten x86 ASM: \n{}\nParsed AST: \n{}\n",
+            "Failed to compile AST to ASM: {} \nWritten x86 ASM: \n{}\nParsed AST: \n{}\n",
             get_output_asm_path(program_path)?,
             std::str::from_utf8(&output.stdout)?,
             std::str::from_utf8(&output.stderr)?
@@ -81,16 +68,16 @@ pub fn record_asm_bin_output(program_path: &Path) -> Result<(), Box<dyn std::err
     let output_record = output_cmd.assert().get_output().clone();
 
     if !output_record.status.success() {
-        eprint!(
-            "FAILED running output cmd with binary path: {}\n",
+        eprintln!(
+            "FAILED running output cmd with binary path: {}",
             get_asm_bin_path(program_path)?
         );
     }
 
-    let output_path = "progs/".to_owned() + &get_output_name(program_path)? + "-actual.txt";
-    let mut output_actual = File::create(output_path.clone())?;
-    let output_actual_write_result = output_actual.write(output_record.stdout.as_slice())?;
-    assert_eq!(output_actual_write_result, output_record.stdout.len());
+    // let output_path = "progs/".to_owned() + &get_output_name(program_path)? + "-actual.txt";
+    // let mut output_actual = File::create(output_path.clone())?;
+    // let output_actual_write_result = output_actual.write(output_record.stdout.as_slice())?;
+    // assert_eq!(output_actual_write_result, output_record.stdout.len());
 
     Ok(())
 }

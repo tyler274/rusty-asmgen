@@ -152,22 +152,85 @@ fn let_helper(var: u8, value: Node, program_counter: &mut usize) -> bool {
 
 fn equality_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
     callee_reg_save();
+    let saved_pc = *program_counter;
     binary_ops_reg_helper(left, right, program_counter);
+
+    print_indent(1);
+    println!("cmp %r12, %r13");
     callee_reg_restore();
-    todo!();
+
+    print_indent(1);
+    println!("jne .LBIF{}_2", saved_pc);
+
+    true
 }
 
 fn less_than_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
     callee_reg_save();
+    let saved_pc = *program_counter;
     binary_ops_reg_helper(left, right, program_counter);
+
+    print_indent(1);
+    println!("cmp %r12, %r13");
     callee_reg_restore();
-    todo!();
+
+    print_indent(1);
+    println!("jle .LBIF{}_2", saved_pc);
+
+    true
 }
 
 fn greater_than_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
     callee_reg_save();
+    let saved_pc = *program_counter;
     binary_ops_reg_helper(left, right, program_counter);
+
+    print_indent(1);
+    println!("cmp %r12, %r13");
+
     callee_reg_restore();
+
+    print_indent(1);
+    println!("jge .LBIF{}_2", saved_pc);
+
+    true
+}
+
+fn if_helper(
+    condition: Node,
+    if_branch: Node,
+    else_branch: Option<Node>,
+    program_counter: &mut usize,
+) -> bool {
+    *program_counter += 1;
+    let saved_pc = *program_counter;
+    compile_ast(condition, program_counter);
+
+    *program_counter += 1;
+    compile_ast(if_branch, program_counter);
+
+    // structure of jumps is different if we have an else or not, so match on that
+    // first to help setup that structure.
+    match else_branch {
+        Some(_e_b) => {
+            print_indent(1);
+            println!("jmp .LBIF{}_3", saved_pc);
+
+            println!(".LBIF{}_2:", saved_pc);
+
+            *program_counter += 1;
+            compile_ast(_e_b, program_counter);
+
+            println!(".LBIF{}_3:", saved_pc);
+        }
+        None => {
+            println!(".LBIF{}_2:", saved_pc);
+        }
+    }
+    true
+}
+
+fn while_helper(_condition: Node, _body: Node, _program_counter: &mut usize) -> bool {
     todo!();
 }
 
@@ -194,24 +257,17 @@ pub fn compile_ast(node: Node, program_counter: &mut usize) -> bool {
         NodeEnum::PrintNode { expr } => print_helper(expr.clone(), program_counter),
         NodeEnum::LetNode { var, value } => let_helper(*var, value.clone(), program_counter),
         NodeEnum::IfNode {
-            condition: _,
-            if_branch: _,
+            condition,
+            if_branch,
             else_branch,
-        } => {
-            // structure of jumps is different if we have an else or not, so match on that
-            // first to help setup that structure.
-            match else_branch {
-                Some(_e_b) => {}
-                None => {
-                    // print_indent(1);
-                    // print!("movq ");
-                }
-            }
-            return false;
+        } => if_helper(
+            condition.clone(),
+            if_branch.clone(),
+            else_branch.clone(),
+            program_counter,
+        ),
+        NodeEnum::WhileNode { condition, body } => {
+            while_helper(condition.clone(), body.clone(), program_counter)
         }
-        NodeEnum::WhileNode {
-            condition: _,
-            body: _,
-        } => todo!(),
     };
 }

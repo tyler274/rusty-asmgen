@@ -18,7 +18,6 @@ pub struct ParserState {
 type CharPredicate = Option<fn(_: u8) -> bool>;
 
 static MAX_KEYWORD_LENGTH: usize = 100;
-// static DEFAULT_STEP: i64 = 1;
 
 fn is_variable_name(c: u8) -> bool {
     c.is_ascii_uppercase()
