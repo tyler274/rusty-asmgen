@@ -204,7 +204,7 @@ pub fn init_while_node(condition: Option<Node>, body: Option<Node>) -> Option<No
 //     }
 // }
 
-pub fn print_indent(mut indent: usize) {
+pub fn eprint_indent(mut indent: usize) {
     while indent > 0 {
         eprint!("\t");
         indent = indent.wrapping_sub(1);
@@ -236,13 +236,13 @@ pub fn print_ast_indented(node: Option<Node>, indent: usize) {
                 }
             }
             NodeEnum::PrintNode { expr } => {
-                print_indent(indent);
+                eprint_indent(indent);
                 eprint!("PRINT(");
                 print_ast_indented(Some(expr.clone()), indent);
                 eprintln!(")");
             }
             NodeEnum::LetNode { var, value } => {
-                print_indent(indent);
+                eprint_indent(indent);
                 eprint!("LET({}, ", std::str::from_utf8(&[*var]).unwrap());
                 print_ast_indented(Some(value.clone()), indent);
                 eprintln!(")");
@@ -252,29 +252,29 @@ pub fn print_ast_indented(node: Option<Node>, indent: usize) {
                 if_branch,
                 else_branch,
             } => {
-                print_indent(indent);
+                eprint_indent(indent);
                 eprint!("IF(");
                 print_ast_indented(Some(condition.clone()), indent);
                 eprintln!(",");
                 print_ast_indented(Some(if_branch.clone()), indent + 1);
                 match else_branch {
                     Some(e_branch) => {
-                        print_indent(indent);
+                        eprint_indent(indent);
                         eprintln!(",");
                         print_ast_indented(Some(e_branch.clone()), indent + 1);
                     }
                     None => {}
                 }
-                print_indent(indent);
+                eprint_indent(indent);
                 eprintln!(")");
             }
             NodeEnum::WhileNode { condition, body } => {
-                print_indent(indent);
+                eprint_indent(indent);
                 eprint!("WHILE(");
                 print_ast_indented(Some(condition.clone()), indent);
                 eprintln!(",");
                 print_ast_indented(Some(body.clone()), indent + 1);
-                print_indent(indent);
+                eprint_indent(indent);
                 eprintln!(")");
             }
         },

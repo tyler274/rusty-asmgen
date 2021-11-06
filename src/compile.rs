@@ -230,8 +230,21 @@ fn if_helper(
     true
 }
 
-fn while_helper(_condition: Node, _body: Node, _program_counter: &mut usize) -> bool {
-    todo!();
+fn while_helper(condition: Node, _body: Node, program_counter: &mut usize) -> bool {
+    *program_counter += 1;
+    let saved_pc = *program_counter;
+
+    println!(".LBWHILE{}_2:", saved_pc);
+    compile_ast(condition, program_counter);
+
+    compile_ast(_body, program_counter);
+
+    print_indent(1);
+    println!("jmp .LBWHILE{}_2", saved_pc);
+
+    println!(".LBIF{}_2:", saved_pc);
+
+    true
 }
 
 pub fn compile_ast(node: Node, program_counter: &mut usize) -> bool {
