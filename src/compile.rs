@@ -22,18 +22,19 @@ fn add_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
 
 fn sub_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
     callee_reg_save();
-    binary_ops_reg_helper(left, right, program_counter);
+    // avoid the extra movq
+    binary_ops_reg_helper(right, left, program_counter);
     print_indent(1);
-    println!("subq %rdi, %r12");
-    print_indent(1);
-    println!("movq %r12, %rdi");
+    println!("subq %r12, %rdi");
+    // print_indent(1);
+    // println!("movq %r12, %rdi");
     callee_reg_restore();
     true
 }
 
 fn mul_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
     callee_reg_save();
-    binary_ops_reg_helper(left.clone(), right.clone(), program_counter);
+    binary_ops_reg_helper(left, right, program_counter);
     print_indent(1);
     // match (left.borrow().deref(), right.borrow().deref()) {
     //     (NodeEnum::Num { value }, _) => {
@@ -253,14 +254,14 @@ fn if_helper(
     true
 }
 
-fn while_helper(condition: Node, _body: Node, program_counter: &mut usize) -> bool {
+fn while_helper(condition: Node, body: Node, program_counter: &mut usize) -> bool {
     *program_counter += 1;
     let saved_pc = *program_counter;
 
     println!(".LBWHILE{}_2:", saved_pc);
     compile_ast(condition, program_counter);
 
-    compile_ast(_body, program_counter);
+    compile_ast(body, program_counter);
 
     print_indent(1);
     println!("jmp .LBWHILE{}_2", saved_pc);
@@ -270,6 +271,8 @@ fn while_helper(condition: Node, _body: Node, program_counter: &mut usize) -> bo
     true
 }
 
+// Implements the constant folding optimization by recursively executing nodes and putting
+// the comple time computed values into the AST instead.
 pub fn compile_ast(node: Node, program_counter: &mut usize) -> bool {
     return match node.borrow().deref() {
         NodeEnum::Num { value } => num_helper(*value),
@@ -386,7 +389,7 @@ pub fn optimize_ast(node: Node) -> Node {
                     .deref()
                     .borrow_mut()
                     .deref()
-                    .into_iter()
+                    .iter()
                     .map(|s| {
                         if s.is_none() {
                             None
