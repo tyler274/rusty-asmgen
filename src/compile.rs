@@ -30,19 +30,22 @@ fn sub_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
 
 fn mul_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
     callee_reg_save();
-    binary_ops_reg_helper(left, right, program_counter);
+    binary_ops_reg_helper(left.clone(), right.clone(), program_counter);
     print_indent(1);
     // match (left.borrow().deref(), right.borrow().deref()) {
     //     (NodeEnum::Num { value }, _) => {
-    //         if *value % 2 == 0 && (63 - value.leading_zeros() < 63) {
-    //             println!("shlq ${}, %rdi", 63 - value.leading_zeros());
-    //         } else {
-    //             println!("imulq %r12, %rdi");
-    //         }
+    //         // if *value % 2 == 0 && (63 - value.leading_zeros() < 64) {
+    //         //     println!("shlq ${}, %rdi", 63 - value.abs().leading_zeros());
+    //         // } else {
+    //         println!("imulq %r12, %rdi");
+    //         // }
     //     }
     //     (_, NodeEnum::Num { value }) => {
-    //         if *value % 2 == 0 && (63 - value.leading_zeros() < 64) {
-    //             println!("shlq ${}, %r12", 63 - value.leading_zeros());
+    //         if *value % 2 == 0 && (64 - value.deref().abs().leading_zeros() - 1 < 63) {
+    //             println!(
+    //                 "shlq ${}, %r12",
+    //                 64 - value.deref().abs().leading_zeros() - 1
+    //             );
 
     //             print_indent(1);
     //             println!("movq %r12, %rdi");
@@ -73,7 +76,7 @@ fn div_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
     println!("cqto");
 
     print_indent(1);
-    println!("idivq %r13");
+    println!("idivq %rdi");
     print_indent(1);
     println!("movq %rax, %rdi");
 
@@ -84,32 +87,23 @@ fn div_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
 fn callee_reg_save() {
     print_indent(1);
     println!("pushq %r12");
-    print_indent(1);
-    println!("pushq %r13");
 }
 
 fn callee_reg_restore() {
     // restore our calle-saved registers that will survive being clobered
-    print_indent(1);
-    println!("popq %r13");
     print_indent(1);
     println!("popq %r12");
 }
 
 fn binary_ops_reg_helper(left: Node, right: Node, program_counter: &mut usize) {
     // evaluate our left hand side
-    // *program_counter += 1;
     compile_ast(left, program_counter);
 
     print_indent(1);
     println!("movq %rdi, %r12");
 
-    // evaluate our right hand side
-    // *program_counter += 1;
+    // evaluate our right hand side, stores in %rdi
     compile_ast(right, program_counter);
-
-    print_indent(1);
-    println!("movq %rdi, %r13");
 }
 
 fn num_helper(value: i64) -> bool {
@@ -173,7 +167,7 @@ fn equality_helper(left: Node, right: Node, program_counter: &mut usize) -> bool
     binary_ops_reg_helper(left, right, program_counter);
 
     print_indent(1);
-    println!("cmp %r12, %r13");
+    println!("cmp %r12, %rdi");
     callee_reg_restore();
 
     print_indent(1);
@@ -188,7 +182,7 @@ fn less_than_helper(left: Node, right: Node, program_counter: &mut usize) -> boo
     binary_ops_reg_helper(left, right, program_counter);
 
     print_indent(1);
-    println!("cmp %r12, %r13");
+    println!("cmp %r12, %rdi");
     callee_reg_restore();
 
     print_indent(1);
@@ -203,7 +197,7 @@ fn greater_than_helper(left: Node, right: Node, program_counter: &mut usize) -> 
     binary_ops_reg_helper(left, right, program_counter);
 
     print_indent(1);
-    println!("cmp %r12, %r13");
+    println!("cmp %r12, %rdi");
 
     callee_reg_restore();
 

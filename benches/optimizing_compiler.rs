@@ -64,7 +64,7 @@ pub fn bench_loops(c: &mut Criterion) {
     let program_path = Path::new("progs/stage7-loops-of-ops.bas");
     write_assembly(program_path).ok();
     clang_compile(program_path).ok();
-    let mut group = c.benchmark_group("loops");
+    let mut group = c.benchmark_group("stage7");
     group.sampling_mode(SamplingMode::Flat).sample_size(100);
     group.bench_function("loops_of_ops execution time", |b| {
         b.iter(|| record_asm_bin_output(program_path).ok())
@@ -75,7 +75,7 @@ pub fn bench_unhash(c: &mut Criterion) {
     let program_path = Path::new("progs/stage7-unhash.bas");
     write_assembly(program_path).ok();
     clang_compile(program_path).ok();
-    let mut group = c.benchmark_group("unhash");
+    let mut group = c.benchmark_group("stage7");
     group.sampling_mode(SamplingMode::Flat).sample_size(100);
     group.bench_function("unhash execution time", |b| {
         b.iter(|| record_asm_bin_output(program_path).ok())
