@@ -94,7 +94,5 @@ pub fn compiler_entrypoint(argc: usize, argv: Vec<String>) -> i32 {
         }
     }
 
-    // free_ast(ast);
-
     0
 }

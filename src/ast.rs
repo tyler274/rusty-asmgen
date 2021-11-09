@@ -156,6 +156,7 @@ pub fn init_while_node(condition: Option<Node>, body: Option<Node>) -> Option<No
 }
 
 // I'm think this is taken care of by RAII and Drop.
+// I'm not storing backpointers so it shouldn't leak memory.
 // pub fn free_ast(node: Option<Node>) {
 //     match node {
 //         None => {

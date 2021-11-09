@@ -15,10 +15,6 @@ debug = true
 [profile.bench]
 debug = true
 
-# [[bin]]
-# path = "src/compiler.rs"
-# name = "compiler"
-
 [dependencies]
 # libc = "0.2"
 
@@ -27,10 +23,7 @@ debug = true
 # https://rust-cli.github.io/book/tutorial/testing.html 
 # the Rust CLI working group suggests these crates for writing tests and benchmarks. 
 assert_cmd = "2"
-# predicates = "2"
 console = "0.15"
-# grep = "0.2"
-
 
 [dev-dependencies.similar]
 version = "2"

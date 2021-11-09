@@ -14,8 +14,6 @@ fn add_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
     binary_ops_reg_helper(left, right, program_counter);
     print_indent(1);
     println!("addq %r12, %rdi");
-    // print_indent(1);
-    // println!("movq %r12, %rdi");
     callee_reg_restore();
     true
 }
@@ -26,8 +24,6 @@ fn sub_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
     binary_ops_reg_helper(right, left, program_counter);
     print_indent(1);
     println!("subq %r12, %rdi");
-    // print_indent(1);
-    // println!("movq %r12, %rdi");
     callee_reg_restore();
     true
 }
@@ -44,16 +40,16 @@ fn mul_helper(left: Node, right: Node, program_counter: &mut usize) -> bool {
     //             println!("imulq %r12, %rdi");
     //         }
     //     }
-    //     // (_, NodeEnum::Num { value }) => {
-    //     //     if *value % 2 == 0 && (63 - value.abs().leading_zeros() < 64) {
-    //     //         println!("shlq ${}, %r12", 63 - value.leading_zeros());
+    //     (_, NodeEnum::Num { value }) => {
+    //         if *value % 2 == 0 && (63 - value.leading_zeros() < 64) {
+    //             println!("shlq ${}, %r12", 63 - value.leading_zeros());
 
-    //     //         print_indent(1);
-    //     //         println!("movq %r12, %rdi");
-    //     //     } else {
-    //     //         println!("imulq %r12, %rdi");
-    //     //     }
-    //     // }
+    //             print_indent(1);
+    //             println!("movq %r12, %rdi");
+    //         } else {
+    //             println!("imulq %r12, %rdi");
+    //         }
+    //     }
     //     (_, _) => {
     //         println!("imulq %r12, %rdi");
     //     }
@@ -138,7 +134,6 @@ fn sequence_helper(
 ) -> bool {
     let mut statement_counter: usize = 0;
     while statement_counter < statement_count {
-        // *program_counter += 1;
         compile_ast(
             statements
                 .deref()
@@ -156,7 +151,6 @@ fn sequence_helper(
 }
 
 fn print_helper(expr: Node, program_counter: &mut usize) -> bool {
-    // *program_counter += 1;
     compile_ast(expr, program_counter);
     print_indent(1);
     println!("call print_int");
@@ -166,7 +160,6 @@ fn print_helper(expr: Node, program_counter: &mut usize) -> bool {
 fn let_helper(var: u8, value: Node, program_counter: &mut usize) -> bool {
     // Get the offset from the stack frame base pointer using ascii A=65...
     // We have to 1 index here or its a caller-callee convention violation.
-    // *program_counter += 1;
     compile_ast(value, program_counter);
     let n = var.to_ascii_uppercase() - 64;
     print_indent(1);
@@ -229,8 +222,6 @@ fn if_helper(
     *program_counter += 1;
     let saved_pc = *program_counter;
     compile_ast(condition, program_counter);
-
-    // *program_counter += 1;
     compile_ast(if_branch, program_counter);
 
     // structure of jumps is different if we have an else or not, so match on that
@@ -271,8 +262,6 @@ fn while_helper(condition: Node, body: Node, program_counter: &mut usize) -> boo
     true
 }
 
-// Implements the constant folding optimization by recursively executing nodes and putting
-// the comple time computed values into the AST instead.
 pub fn compile_ast(node: Node, program_counter: &mut usize) -> bool {
     return match node.borrow().deref() {
         NodeEnum::Num { value } => num_helper(*value),
@@ -311,6 +300,8 @@ pub fn compile_ast(node: Node, program_counter: &mut usize) -> bool {
     };
 }
 
+// Implements the constant folding optimization by recursively executing nodes and putting
+// the comple time computed values into the AST instead.
 pub fn optimize_ast(node: Node) -> Node {
     return match node.borrow().deref() {
         NodeEnum::Num { .. } => node.clone(),

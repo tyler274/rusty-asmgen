@@ -65,7 +65,7 @@ pub fn bench_loops(c: &mut Criterion) {
     write_assembly(program_path).ok();
     clang_compile(program_path).ok();
     let mut group = c.benchmark_group("loops");
-    group.sampling_mode(SamplingMode::Flat).sample_size(1000);
+    group.sampling_mode(SamplingMode::Flat).sample_size(100);
     group.bench_function("loops_of_ops execution time", |b| {
         b.iter(|| record_asm_bin_output(program_path).ok())
     });
@@ -76,7 +76,7 @@ pub fn bench_unhash(c: &mut Criterion) {
     write_assembly(program_path).ok();
     clang_compile(program_path).ok();
     let mut group = c.benchmark_group("unhash");
-    group.sampling_mode(SamplingMode::Flat).sample_size(1000);
+    group.sampling_mode(SamplingMode::Flat).sample_size(100);
     group.bench_function("unhash execution time", |b| {
         b.iter(|| record_asm_bin_output(program_path).ok())
     });
